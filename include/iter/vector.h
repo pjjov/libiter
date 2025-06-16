@@ -199,4 +199,43 @@ ITER_API allocator_t *vector__allocator(const vector_t *vec) {
     return vec ? vec->allocator : NULL;
 }
 
+/** int vector_resize(vector(T) vec, size_t capacity);
+
+    Resizes vector's buffer to fit `capacity` items. If the length of
+    `vec` is larger than `capacity`, excess items will be removed.
+
+    > It's better to use `vector_reserve` for reserving space.
+
+    Possible error codes: `ITER_EINVAL`, `ITER_ENOMEM`.
+**/
+#define vector_resize(m_vec, m_capacity)                              \
+    vector__resize(                                                   \
+        vector_as_base(m_vec), vector_type_size(m_vec) * (m_capacity) \
+    )
+
+int vector__resize(vector_t *vec, size_t capacity);
+
+/** int vector_reserve(vector(T) vec, size_t count);
+
+    Reserves space to fit at least `count` more items in `vec`.
+    This function will not resize the buffer if space is already reserved.
+
+    Possible error codes: ITER_EINVAL, ITER_ENOMEM.
+**/
+#define vector_reserve(m_vec, m_count) \
+    vector__reserve(vector_as_base(m_vec), vector_type_size(m_vec) * (m_count))
+
+int vector__reserve(vector_t *vec, size_t size);
+
+/** int vector_shrink(vector(T) vec);
+
+    Resizes internal buffer to fit least space possible.
+    Possible error codes: ITER_EINVAL, ITER_ENOMEM.
+**/
+#define vector_shrink(m_vec) vector__shrink(vector_as_base(m_vec))
+
+ITER_API int vector__shrink(vector_t *vec) {
+    return vector__resize(vec, vector__length(vec));
+}
+
 #endif

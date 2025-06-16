@@ -37,8 +37,57 @@ int test_vector_create(int seed, int repetition) {
     return 0;
 }
 
+int test_vector_wrap(int seed, int repetition) {
+    int a[] = { 0, 1, 2 };
+    vector(int) v = vector_wrap(a, 3, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert(vector_items(v) == a);
+    pf_assert(vector_get(v, 0) == &a[0]);
+    pf_assert(vector_get(v, 1) == &a[1]);
+    pf_assert(vector_get(v, 2) == &a[2]);
+
+    vector_destroy(v);
+    return 0;
+}
+
+int test_vector_reserve(int seed, int repetition) {
+    vector(int) v = vector_create(int, NULL);
+    pf_assert_not_null(v);
+    pf_assert(vector_capacity(v) == 0);
+
+    pf_assert_ok(vector_reserve(v, 2));
+    pf_assert(vector_capacity(v) >= 2);
+
+    vector_destroy(v);
+    return 0;
+}
+
+int test_vector_resize(int seed, int repetition) {
+    vector(int) v = vector_create(int, NULL);
+    pf_assert_not_null(v);
+    pf_assert(vector_capacity(v) == 0);
+    pf_assert_null(vector_items(v));
+
+    pf_assert_ok(vector_resize(v, 10));
+    pf_assert(vector_capacity(v) == 10);
+
+    pf_assert_ok(vector_reserve(v, 5));
+    pf_assert(vector_capacity(v) == 10);
+
+    pf_assert_ok(vector_shrink(v));
+    pf_assert(vector_capacity(v) == 0);
+    pf_assert_null(vector_items(v));
+
+    vector_destroy(v);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
+    { test_vector_wrap, "/vector/wrap", 1 },
+    { test_vector_resize, "/vector/resize", 1 },
+    { test_vector_reserve, "/vector/reserve", 1 },
     { 0 },
 };

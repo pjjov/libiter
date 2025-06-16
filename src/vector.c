@@ -14,6 +14,8 @@
 
 extern allocator_t *libiter_allocator;
 
+#define VECTOR_GROWTH(old, req) ((old + req) * 1.5)
+
 vector_t *vector__init(vector_t *vec, allocator_t *allocator) {
     if (!allocator)
         allocator = libiter_allocator;
@@ -71,6 +73,35 @@ vector_t *vector__wrap(void *items, size_t length, allocator_t *allocator) {
     }
 
     return vec;
+}
+
+int vector__resize(vector_t *vec, size_t capacity) {
+    if (!vec || !vec->allocator)
+        return ITER_EINVAL;
+
+    void *items = reallocate(
+        vec->allocator, vec->items, vec->capacity, capacity
+    );
+
+    if (!items && capacity > 0)
+        return ITER_ENOMEM;
+
+    vec->items = items;
+    vec->capacity = capacity;
+    if (vec->length > capacity)
+        vec->length = capacity;
+
+    return ITER_OK;
+}
+
+int vector__reserve(vector_t *vec, size_t size) {
+    if (!vec || size == 0)
+        return ITER_EINVAL;
+
+    if (vec->length + size <= vec->capacity)
+        return ITER_OK;
+
+    return vector__resize(vec, VECTOR_GROWTH(vec->capacity, size));
 }
 
 void vector__free(vector_t *vec) {
