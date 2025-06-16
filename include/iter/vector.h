@@ -168,6 +168,20 @@ ITER_API void *vector__items(const vector_t *vec) {
     return vec ? vec->items : NULL;
 }
 
+/** T *vector_end(vector(T) vec);
+
+    Returns pointer to the end of the buffer used by `vector`.
+    or `NULL` if `vector` is `NULL` or it's capacity is zero.
+
+    > This pointer is valid until `vector` is resized or destroyed.
+**/
+#define vector_end(m_vec)                                        \
+    (vector_type_ptr(m_vec))(vector__end(vector_as_base(m_vec)))
+
+ITER_API void *vector__end(const vector_t *vec) {
+    return vec ? &((unsigned char *)vec->items)[vec->length] : NULL;
+}
+
 /** size_t vector_length(vector(T) vec);
 
     Returns number of items present in `vec` or 0 if `vec` is `NULL`.
@@ -190,6 +204,18 @@ ITER_API size_t vector__capacity(const vector_t *vec) {
     return vec ? vec->capacity : 0;
 }
 
+/** size_t vector_bytes_used(vector(T) vec);
+
+    Returns number of bytes used by items present in `vector`.
+**/
+#define vector_bytes_used(m_vec) (vector__length(vector_as_base(m_vec)))
+
+/** size_t vector_bytes_reserved(vector(T) vec);
+
+    Returns number of bytes reserved for items in `vector`.
+**/
+#define vector_bytes_reserved(m_vec) (vector__capacity(vector_as_base(m_vec)))
+
 /** allocator_t *vector_allocator(vector(T) vec);
 
     Returns the allocator used by `vec` or `NULL`
@@ -200,6 +226,12 @@ ITER_API size_t vector__capacity(const vector_t *vec) {
 ITER_API allocator_t *vector__allocator(const vector_t *vec) {
     return vec ? vec->allocator : NULL;
 }
+
+/** int vector_is_empty(vector(T) vec);
+
+    Returns a non-zero value if `vec` has no items.
+**/
+#define vector_is_empty(m_vec) (vector_length(m_vec) == 0)
 
 /** int vector_resize(vector(T) vec, size_t capacity);
 
