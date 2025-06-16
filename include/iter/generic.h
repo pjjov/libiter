@@ -24,8 +24,8 @@
 #define generic_value_size(m_type, m_cntr)     \
     sizeof(generic_value_type(m_type, m_cntr))
 
-#define generic_check_value(m_cntr, m_value)           \
-    pf_check_type(generic_value_type(m_cntr), m_value)
+#define generic_check_value(m_type, m_cntr, m_value)          \
+    pf_check_type(generic_value_ptr(m_type, m_cntr), m_value)
 
 #define generic_check_container(m_type, m_key, m_cntr)                        \
     ((m_type *)pf_check_type(                                                 \

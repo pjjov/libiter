@@ -104,6 +104,24 @@ int vector__reserve(vector_t *vec, size_t size) {
     return vector__resize(vec, VECTOR_GROWTH(vec->capacity, size));
 }
 
+int vector__insert(vector_t *vec, const void *items, size_t i, size_t size) {
+    if (!vec || !items || size == 0 || i > vec->length)
+        return ITER_EINVAL;
+
+    if (vector__reserve(vec, size))
+        return ITER_ENOMEM;
+
+    if (i < vec->length) {
+        void *dst = vector__slot(vec, i + size);
+        void *src = vector__slot(vec, i);
+        memcpy(dst, src, vec->length - i);
+    }
+
+    vec->length += size;
+    memcpy(vector__slot(vec, i), items, size);
+    return ITER_OK;
+}
+
 void vector__free(vector_t *vec) {
     if (vec && vec->items) {
         deallocate(vec->allocator, vec->items, vec->capacity);

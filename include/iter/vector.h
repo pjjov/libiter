@@ -8,6 +8,7 @@
 #ifndef LIBITER_VECTOR_H
 #define LIBITER_VECTOR_H
 
+#include "error.h"
 #include "generic.h"
 #include <allocator.h>
 #include <stddef.h>
@@ -54,7 +55,8 @@ typedef struct vector_t {
 #define vector_type_ptr(m_vec) generic_value_ptr(vector_t, m_vec)
 #define vector_type_size(m_vec) generic_value_size(vector_t, m_vec)
 #define vector_as_base(m_vec) generic_check_container(vector_t, size_t, m_vec)
-#define vector_check_type(m_vec, m_item) generic_check_value(m_vec, m_item)
+#define vector_check_type(m_vec, m_item)         \
+    generic_check_value(vector_t, m_vec, m_item)
 
 /** vector(T) vector_init(type T, vector_t *vec, allocator_t *allocator);
 
@@ -236,6 +238,62 @@ int vector__reserve(vector_t *vec, size_t size);
 
 ITER_API int vector__shrink(vector_t *vec) {
     return vector__resize(vec, vector__length(vec));
+}
+
+/** int vector_insert(vector(T) vec, T *items, size_t i, size_t count);
+
+    Inserts `count` items from `items` starting at index `i`.
+    `count` must not be zero and `i` must not be larger than length.
+
+    Possible error codes: ITER_EINVAL, ITER_ENOMEM.
+**/
+#define vector_insert(m_vec, m_items, m_i, m_count) \
+    vector__insert(                                 \
+        vector_as_base(m_vec),                      \
+        vector_check_type(m_vec, m_items),          \
+        vector_type_size(m_vec) * (m_i),            \
+        vector_type_size(m_vec) * (m_count)         \
+    )
+
+int vector__insert(vector_t *vec, const void *items, size_t i, size_t size);
+
+/** int vector_push(vector(T) vec, T *items, size_t count);
+
+    Inserts `count` items from `items`, starting from the end of `vector`.
+    Possible error codes: ITER_EINVAL, ITER_ENOMEM.
+**/
+#define vector_push(m_vec, m_items, m_count) \
+    vector__insert(                          \
+        vector_as_base(m_vec),               \
+        vector_check_type(m_vec, m_items),   \
+        vector_type_size(m_vec) * (m_count)  \
+    )
+
+ITER_API int vector__push(vector_t *vec, const void *items, size_t size) {
+    return vector__insert(vec, items, vector__length(vec), size);
+}
+
+/** int vector_try_insert(vector(T) vec, T *items, size_t i, size_t count);
+
+    Attempts to insert `count` items from `items` starting at index `i` without
+    reserving additional space, i.e. without resizing if out of memory.
+
+    Possible error codes: ITER_EINVAL, ITER_ENOMEM.
+**/
+#define vector_try_insert(m_vec, m_items, m_i, m_count) \
+    vector__try_insert(                                 \
+        vector_as_base(m_vec),                          \
+        vector_check_type(m_vec, m_items),              \
+        vector_type_size(m_vec) * (m_i),                \
+        vector_type_size(m_vec) * (m_count)             \
+    )
+
+ITER_API int vector__try_insert(
+    vector_t *vec, const void *items, size_t i, size_t size
+) {
+    if (vec && vec->length + size > vec->capacity)
+        return ITER_ENOMEM;
+    return vector__insert(vec, items, i, size);
 }
 
 #endif

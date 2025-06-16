@@ -83,11 +83,50 @@ int test_vector_resize(int seed, int repetition) {
     return 0;
 }
 
+int test_vector_insert(int seed, int repetition) {
+    int a[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    vector(int) v = vector_create(int, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert_ok(vector_insert(v, &a[0], 0, 3));
+    pf_assert(vector_length(v) == 3);
+
+    pf_assert_ok(vector_insert(v, &a[8], 3, 2));
+    pf_assert(vector_length(v) == 5);
+
+    pf_assert_ok(vector_insert(v, &a[3], 3, 5));
+    pf_assert(vector_length(v) == 10);
+    pf_assert_memcmp(a, vector_items(v), sizeof(a));
+
+    vector_destroy(v);
+    return 0;
+}
+
+int test_vector_try_insert(int seed, int repetition) {
+    int a[] = { 1, 2, 3, 4, 5 };
+    vector(int) v = vector_create(int, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert_ok(vector_resize(v, 4));
+    pf_assert_ok(vector_try_insert(v, (int *)a, 0, 2));
+    pf_assert(vector_length(v) == 2);
+    pf_assert_memcmp(a, vector_items(v), 2 * sizeof(int));
+
+    pf_assert(ITER_ENOMEM == vector_try_insert(v, (int *)a, 0, 3));
+    pf_assert(ITER_EINVAL == vector_try_insert(v, (int *)a, 3, 2));
+    pf_assert(ITER_EINVAL == vector_try_insert(v, (int *)NULL, 0, 1));
+
+    vector_destroy(v);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
     { test_vector_wrap, "/vector/wrap", 1 },
     { test_vector_resize, "/vector/resize", 1 },
     { test_vector_reserve, "/vector/reserve", 1 },
+    { test_vector_insert, "/vector/insert", 1 },
+    { test_vector_try_insert, "/vector/try_insert", 1 },
     { 0 },
 };
