@@ -41,4 +41,4 @@ tests = executable(
     ]
 )
 
-test('libiter/vector', tests, args: ['vector'])
+test('libiter/vector', tests, args: ['vector'], protocol: 'tap')

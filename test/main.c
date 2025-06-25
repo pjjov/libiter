@@ -10,25 +10,36 @@
 
 extern pf_test suite_vector[];
 
-const pf_test *suites[] = {
+static const pf_test *suites[] = {
     suite_vector,
     NULL,
 };
 
+static const char *names[] = { "vector", NULL };
+
 int main(int argc, char *argv[]) {
     if (argc > 2) {
-        perror(
-            "usage: libiter-test [suite]\n"
-            "suites:\n"
-            "\tvector\n"
-        );
-        return -1;
-    } else if (argc == 1)
-        return pf_suite_run_all(suites, 0);
-    else if (0 == strcmp(argv[1], "vector"))
-        return pf_suite_run(suite_vector, 0);
-    else {
-        fprintf(stderr, "libiter-test: unknown suite '%s'\n", argv[1]);
+        fputs("usage: libiter-test [suite]\nsuites:", stderr);
+
+        for (int i = 0; names[i]; i++) {
+            fputc(' ', stderr);
+            fputs(names[i], stderr);
+        }
+
+        fputc('\n', stderr);
         return -1;
     }
+
+    if (argc == 1)
+        return pf_suite_run_all(suites, 0, NULL);
+
+    for (int i = 0; names[i]; i++) {
+        if (0 == strcmp(argv[1], names[i])) {
+            pf_suite_run_tap(suites[i], 0, NULL);
+            return 0;
+        }
+    }
+
+    fprintf(stderr, "libiter-test: unknown suite '%s'\n", argv[1]);
+    return -1;
 }
