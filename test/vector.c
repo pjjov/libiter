@@ -10,7 +10,7 @@
 #include <pf_test.h>
 #include <stdint.h>
 
-int test_vector_init(int seed, int repetition) {
+int test_vector_init(int seed, int rep) {
     vector_t v;
 
     vector(int) out = vector_init(int, &v, NULL);
@@ -24,7 +24,7 @@ int test_vector_init(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_create(int seed, int repetition) {
+int test_vector_create(int seed, int rep) {
     vector(int) v;
 
     v = vector_create(int, NULL);
@@ -37,7 +37,7 @@ int test_vector_create(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_wrap(int seed, int repetition) {
+int test_vector_wrap(int seed, int rep) {
     int a[] = { 0, 1, 2 };
     vector(int) v = vector_wrap(a, 3, NULL);
     pf_assert_not_null(v);
@@ -51,7 +51,7 @@ int test_vector_wrap(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_reserve(int seed, int repetition) {
+int test_vector_reserve(int seed, int rep) {
     vector(int) v = vector_create(int, NULL);
     pf_assert_not_null(v);
     pf_assert(vector_capacity(v) == 0);
@@ -63,7 +63,7 @@ int test_vector_reserve(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_resize(int seed, int repetition) {
+int test_vector_resize(int seed, int rep) {
     vector(int) v = vector_create(int, NULL);
     pf_assert_not_null(v);
     pf_assert(vector_capacity(v) == 0);
@@ -83,7 +83,7 @@ int test_vector_resize(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_insert(int seed, int repetition) {
+int test_vector_insert(int seed, int rep) {
     int a[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
     vector(int) v = vector_create(int, NULL);
     pf_assert_not_null(v);
@@ -102,7 +102,7 @@ int test_vector_insert(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_try_insert(int seed, int repetition) {
+int test_vector_try_insert(int seed, int rep) {
     int a[] = { 1, 2, 3, 4, 5 };
     vector(int) v = vector_create(int, NULL);
     pf_assert_not_null(v);
@@ -120,7 +120,7 @@ int test_vector_try_insert(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_remove(int seed, int repetition) {
+int test_vector_remove(int seed, int rep) {
     int a[] = { 1, 2, 3, 4, 5 };
     vector(int) v = vector_wrap(a, 5, NULL);
     pf_assert_not_null(v);
@@ -143,7 +143,7 @@ int test_vector_remove(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_from_array(int seed, int repetition) {
+int test_vector_from_array(int seed, int rep) {
     int a[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
     vector(int) v1 = vector_from_array(a, 10, NULL);
     pf_assert_not_null(v1);
@@ -162,7 +162,7 @@ int test_vector_from_array(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_clone(int seed, int repetition) {
+int test_vector_clone(int seed, int rep) {
     int a[] = { 1, 2, 3, 4, 5 };
     vector(int) vector = vector_from_array(a, 5, NULL);
     pf_assert_not_null(vector);
