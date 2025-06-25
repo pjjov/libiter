@@ -122,6 +122,22 @@ int vector__insert(vector_t *vec, const void *items, size_t i, size_t size) {
     return ITER_OK;
 }
 
+int vector__remove(vector_t *vec, size_t i, size_t size) {
+    if (!vec || size == 0 || i + size > vec->length)
+        return ITER_EINVAL;
+
+    if (i + size < vec->length - 1) {
+        memcpy(
+            vector__slot(vec, i),
+            vector__slot(vec, i + size),
+            vec->length - i - size
+        );
+    }
+
+    vec->length -= size;
+    return ITER_OK;
+}
+
 void vector__free(vector_t *vec) {
     if (vec && vec->items) {
         deallocate(vec->allocator, vec->items, vec->capacity);

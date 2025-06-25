@@ -238,6 +238,17 @@ ITER_API allocator_t *vector__allocator(const vector_t *vec) {
 **/
 #define vector_is_empty(m_vec) (vector_length(m_vec) == 0)
 
+/** void vector_clear(vector(T) vec);
+
+    Removes all items from `vec`, if it's not `NULL`.
+**/
+#define vector_clear(m_vec) vector__clear(vector_as_base(m_vec))
+
+ITER_API void vector__clear(vector_t *vec) {
+    if (vec)
+        vec->length = 0;
+}
+
 /** int vector_resize(vector(T) vec, size_t capacity);
 
     Resizes vector's buffer to fit `capacity` items. If the length of
@@ -329,6 +340,34 @@ ITER_API int vector__try_insert(
     if (vec && vec->length + size > vec->capacity)
         return ITER_ENOMEM;
     return vector__insert(vec, items, i, size);
+}
+
+/** int vector_remove(vector(T) vec, size_t i, size_t count);
+
+    Removes `count` items from `vec` starting from the index `i`.
+    Possible error codes: ITER_EINVAL.
+**/
+#define vector_remove(m_vec, m_i, m_count) \
+    vector__remove(                        \
+        vector_as_base(m_vec),             \
+        vector_type_mul(m_vec, (m_i)),     \
+        vector_type_mul(m_vec, (m_count))  \
+    )
+
+int vector__remove(vector_t *vec, size_t i, size_t size);
+
+/** int vector_pop(vector(T) vec, size_t count);
+
+    Removes `count` items from the end of the `vec`.
+    Possible error codes: ITER_EINVAL.
+**/
+#define vector_pop(m_vec, m_count)                                        \
+    vector__pop(vector_as_base(m_vec), vector_type_mul(m_vec, (m_count)))
+
+ITER_API int vector__pop(vector_t *vec, size_t count) {
+    if (!vec || count > vec->length)
+        return ITER_EINVAL;
+    return vector__remove(vec, vec->length - count, count);
 }
 
 #endif

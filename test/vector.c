@@ -120,6 +120,29 @@ int test_vector_try_insert(int seed, int repetition) {
     return 0;
 }
 
+int test_vector_remove(int seed, int repetition) {
+    int a[] = { 1, 2, 3, 4, 5 };
+    vector(int) v = vector_wrap(a, 5, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert_ok(vector_remove(v, 0, 2));
+    pf_assert(vector_length(v) == 3);
+    pf_assert(a[0] == *vector_get(v, 0));
+    pf_assert(a[1] == *vector_get(v, 1));
+    pf_assert(a[2] == *vector_get(v, 2));
+
+    pf_assert_ok(vector_pop(v, 2));
+    pf_assert(vector_length(v) == 1);
+    pf_assert(3 == *vector_get(v, 0));
+
+    pf_assert(ITER_EINVAL == vector_pop(v, 2));
+    pf_assert(ITER_EINVAL == vector_remove(v, 2, 1));
+    pf_assert(ITER_EINVAL == vector_remove(v, 0, 30));
+
+    vector_destroy(v);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
@@ -128,5 +151,6 @@ pf_test suite_vector[] = {
     { test_vector_reserve, "/vector/reserve", 1 },
     { test_vector_insert, "/vector/insert", 1 },
     { test_vector_try_insert, "/vector/try_insert", 1 },
+    { test_vector_remove, "/vector/remove", 1 },
     { 0 },
 };
