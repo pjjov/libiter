@@ -11,6 +11,7 @@
 #include "error.h"
 #include "generic.h"
 #include <allocator.h>
+#include <pf_overflow.h>
 #include <stddef.h>
 
 #ifndef ITER_API
@@ -54,6 +55,9 @@ typedef struct vector_t {
 #define vector_type(m_vec) generic_value_type(vector_t, m_vec)
 #define vector_type_ptr(m_vec) generic_value_ptr(vector_t, m_vec)
 #define vector_type_size(m_vec) generic_value_size(vector_t, m_vec)
+#define vector_type_mul(m_vec, m_i)                               \
+    pf_checked_umulsize(generic_value_size(vector_t, m_vec), m_i)
+
 #define vector_as_base(m_vec) generic_check_container(vector_t, size_t, m_vec)
 #define vector_check_type(m_vec, m_item)         \
     generic_check_value(vector_t, m_vec, m_item)
@@ -97,9 +101,11 @@ vector_t *vector__create(allocator_t *allocator);
 
     Returns `NULL` if out of memory or `sizeof(T) == 0`.
 **/
-#define vector_wrap(m_items, m_length, m_allocator)               \
-    ((vector(typeof(*(m_items))))vector__wrap(                    \
-        (m_items), sizeof(*(m_items)) * (m_length), (m_allocator) \
+#define vector_wrap(m_items, m_length, m_allocator)          \
+    ((vector(typeof(*(m_items))))vector__wrap(               \
+        (m_items),                                           \
+        pf_checked_umulsize(sizeof(*(m_items)), (m_length)), \
+        (m_allocator)                                        \
     ))
 
 vector_t *vector__wrap(void *items, size_t length, allocator_t *allocator);
@@ -127,9 +133,9 @@ void vector__destroy(vector_t *vec);
 
     > This pointer is valid until `vector` is resized or destroyed.
 **/
-#define vector_slot(m_vec, m_i)                                                \
-    ((vector_type_ptr(m_vec))                                                  \
-         vector__slot(vector_as_base(m_vec), vector_type_size(m_vec) * (m_i)))
+#define vector_slot(m_vec, m_i)                                            \
+    ((vector_type_ptr(m_vec))                                              \
+         vector__slot(vector_as_base(m_vec), vector_type_mul(m_vec, m_i)))
 
 static inline void *vector__slot(const vector_t *vec, size_t i) {
     if (!vec || i >= vec->capacity)
@@ -143,10 +149,9 @@ static inline void *vector__slot(const vector_t *vec, size_t i) {
 
     > This pointer is valid until `vector` is resized or destroyed.
 **/
-#define vector_get(m_vec, m_index)                                 \
-    ((vector_type_ptr(m_vec))vector__get(                          \
-        vector_as_base(m_vec), vector_type_size(m_vec) * (m_index) \
-    ))
+#define vector_get(m_vec, m_index)                                            \
+    ((vector_type_ptr(m_vec))                                                 \
+         vector__get(vector_as_base(m_vec), vector_type_mul(m_vec, m_index)))
 
 ITER_API void *vector__get(const vector_t *vec, size_t i) {
     if (!vec || i >= vec->length)
@@ -242,10 +247,8 @@ ITER_API allocator_t *vector__allocator(const vector_t *vec) {
 
     Possible error codes: `ITER_EINVAL`, `ITER_ENOMEM`.
 **/
-#define vector_resize(m_vec, m_capacity)                              \
-    vector__resize(                                                   \
-        vector_as_base(m_vec), vector_type_size(m_vec) * (m_capacity) \
-    )
+#define vector_resize(m_vec, m_capacity)                                      \
+    vector__resize(vector_as_base(m_vec), vector_type_mul(m_vec, m_capacity))
 
 int vector__resize(vector_t *vec, size_t capacity);
 
@@ -256,8 +259,8 @@ int vector__resize(vector_t *vec, size_t capacity);
 
     Possible error codes: ITER_EINVAL, ITER_ENOMEM.
 **/
-#define vector_reserve(m_vec, m_count) \
-    vector__reserve(vector_as_base(m_vec), vector_type_size(m_vec) * (m_count))
+#define vector_reserve(m_vec, m_count)                                      \
+    vector__reserve(vector_as_base(m_vec), vector_type_mul(m_vec, m_count))
 
 int vector__reserve(vector_t *vec, size_t size);
 
@@ -283,8 +286,8 @@ ITER_API int vector__shrink(vector_t *vec) {
     vector__insert(                                 \
         vector_as_base(m_vec),                      \
         vector_check_type(m_vec, m_items),          \
-        vector_type_size(m_vec) * (m_i),            \
-        vector_type_size(m_vec) * (m_count)         \
+        vector_type_mul(m_vec, m_i),                \
+        vector_type_mul(m_vec, m_count)             \
     )
 
 int vector__insert(vector_t *vec, const void *items, size_t i, size_t size);
@@ -298,7 +301,7 @@ int vector__insert(vector_t *vec, const void *items, size_t i, size_t size);
     vector__insert(                          \
         vector_as_base(m_vec),               \
         vector_check_type(m_vec, m_items),   \
-        vector_type_size(m_vec) * (m_count)  \
+        vector_type_mul(m_vec, m_count)      \
     )
 
 ITER_API int vector__push(vector_t *vec, const void *items, size_t size) {
@@ -316,8 +319,8 @@ ITER_API int vector__push(vector_t *vec, const void *items, size_t size) {
     vector__try_insert(                                 \
         vector_as_base(m_vec),                          \
         vector_check_type(m_vec, m_items),              \
-        vector_type_size(m_vec) * (m_i),                \
-        vector_type_size(m_vec) * (m_count)             \
+        vector_type_mul(m_vec, m_i),                    \
+        vector_type_mul(m_vec, m_count)                 \
     )
 
 ITER_API int vector__try_insert(
