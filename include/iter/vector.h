@@ -92,6 +92,37 @@ void vector__free(vector_t *vec);
 #define vector_create(T, m_allocator) ((vector(T))vector__create((m_allocator)))
 vector_t *vector__create(allocator_t *allocator);
 
+/** vector(T) vector_with_capacity(type T, size_t cap, allocator_t *allocator);
+
+    Creates a new instance of `vector(T)`, allocated with `allocator`, and
+    reserves space to fit least `cap` items. Returns `NULL` if out of memory.
+
+    > If `allocator` is `NULL`, the default one will be used.
+**/
+#define vector_with_capacity(T, m_capacity, m_allocator)            \
+    ((vector(T))vector__with_capacity(                              \
+        pf_checked_umulsize(sizeof(T), (m_capacity)), (m_allocator) \
+    ))
+
+vector_t *vector__with_capacity(size_t cap, allocator_t *allocator);
+
+/** vector(T) vector_from_array(T *array, size_t len, allocator_t *allocator);
+
+    Creates a new vector with type `T` and copies `len` items from `array`.
+    Unlike `vector_wrap`, this function copies `array` into a new buffer.
+    Returns `NULL` if out of memory or `sizeof(T) == 0`.
+**/
+#define vector_from_array(m_items, m_length, m_allocator)    \
+    ((vector(typeof(*(m_items))))vector__from_array(         \
+        (const void *)(m_items),                             \
+        pf_checked_umulsize(sizeof(*(m_items)), (m_length)), \
+        (m_allocator)                                        \
+    ))
+
+vector_t *vector__from_array(
+    const void *items, size_t length, allocator_t *alloc
+);
+
 /** vector(T) vector_wrap(T *array, size_t length, allocator_t *allocator);
 
     Creates a new instance of `vector(T)` and uses `array` as it's buffer.
@@ -109,6 +140,18 @@ vector_t *vector__create(allocator_t *allocator);
     ))
 
 vector_t *vector__wrap(void *items, size_t length, allocator_t *allocator);
+
+/** vector(T) vector_clone(vector(T) vec, allocator_t *allocator);
+
+    Creates a new `vector(T)`, using `allocator`, and copies all items
+    from `vec`. Returns `NULL` if out of memory or if `vec` is empty.
+**/
+#define vector_clone(m_vec, m_allocator)                                 \
+    ((typeof(m_vec))vector__clone(vector_as_base(m_vec), (m_allocator)))
+
+ITER_API vector_t *vector__clone(const vector_t *vec, allocator_t *allocator) {
+    return vec ? vector__from_array(vec->items, vec->length, allocator) : NULL;
+}
 
 /** T *vector_unwrap(vector(T) vec);
 

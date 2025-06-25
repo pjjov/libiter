@@ -143,6 +143,40 @@ int test_vector_remove(int seed, int repetition) {
     return 0;
 }
 
+int test_vector_from_array(int seed, int repetition) {
+    int a[] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+    vector(int) v1 = vector_from_array(a, 10, NULL);
+    pf_assert_not_null(v1);
+    pf_assert(vector_length(v1) == 10);
+    pf_assert(vector_bytes_used(v1) == sizeof(a));
+
+    for (size_t i = 0; i < 10; i++)
+        pf_assert(*vector_get(v1, i) == a[i]);
+
+    int b[] = { 0 };
+    vector(int) v2 = vector_from_array(b, 0, NULL);
+    pf_assert_null(v2);
+
+    vector_destroy(v1);
+    vector_destroy(v2);
+    return 0;
+}
+
+int test_vector_clone(int seed, int repetition) {
+    int a[] = { 1, 2, 3, 4, 5 };
+    vector(int) vector = vector_from_array(a, 5, NULL);
+    pf_assert_not_null(vector);
+
+    vector(int) cloned = vector_clone(vector, NULL);
+    pf_assert_not_null(cloned);
+    pf_assert(vector_length(vector) == vector_length(cloned));
+    pf_assert(vector_items(vector) != vector_items(cloned));
+
+    vector_destroy(vector);
+    vector_destroy(cloned);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
@@ -152,5 +186,7 @@ pf_test suite_vector[] = {
     { test_vector_insert, "/vector/insert", 1 },
     { test_vector_try_insert, "/vector/try_insert", 1 },
     { test_vector_remove, "/vector/remove", 1 },
+    { test_vector_from_array, "/vector/from_array", 1 },
+    { test_vector_clone, "/vector/clone", 1 },
     { 0 },
 };

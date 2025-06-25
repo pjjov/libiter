@@ -37,6 +37,33 @@ vector_t *vector__create(allocator_t *allocator) {
     return vector__init(vec, allocator);
 }
 
+vector_t *vector__with_capacity(size_t cap, allocator_t *allocator) {
+    vector_t *out = vector__create(allocator);
+
+    if (out && cap > 0 && vector__reserve(out, cap)) {
+        vector__destroy(out);
+        return NULL;
+    }
+
+    return out;
+}
+
+vector_t *vector__from_array(
+    const void *items, size_t length, allocator_t *allocator
+) {
+    if (!items || length == 0)
+        return NULL;
+
+    vector_t *out = vector__with_capacity(length, allocator);
+
+    if (out && vector__insert(out, items, 0, length)) {
+        vector__destroy(out);
+        return NULL;
+    }
+
+    return out;
+}
+
 void vector__destroy(vector_t *vec) {
     if (vec) {
         if (vec->allocator)
