@@ -170,3 +170,13 @@ void vector__free(vector_t *vec) {
         deallocate(vec->allocator, vec->items, vec->capacity);
     }
 }
+
+size_t vector__index(const vector_t *vec, const void *item) {
+    if (!vec || !item)
+        return vec ? vec->length : 0;
+
+    if (item < vec->items || item > vector__slot(vec, vec->length - 1))
+        return vec->length;
+
+    return (uintptr_t)item - (uintptr_t)vec->items;
+}

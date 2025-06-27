@@ -177,6 +177,68 @@ int test_vector_clone(int seed, int rep) {
     return 0;
 }
 
+int test_vector_index(int seed, int repetition) {
+    int a[] = { 0, 1, 2 };
+    vector(int) v = vector_from_array(a, 3, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert(0 == vector_index(v, vector_get(v, 0)));
+    pf_assert(1 == vector_index(v, vector_get(v, 1)));
+    pf_assert(2 == vector_index(v, vector_get(v, 2)));
+
+    pf_assert(vector_length(v) == vector_index(v, (int *)NULL));
+
+    vector_destroy(v);
+    return 0;
+}
+
+int test_vector_insert_at(int seed, int repetition) {
+    int a[] = { 1, 2, 3, 4, 5 };
+    vector(int) v = vector_with_capacity(int, 5, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert_ok(vector_insert_at(v, (int *)a, vector_items(v), 3));
+    pf_assert(vector_length(v) == 3);
+    pf_assert_memcmp(a, vector_items(v), 3 * sizeof(int));
+
+    pf_assert_ok(
+        vector_insert_at(v, &a[3], vector_slot(v, vector_length(v)), 2)
+    );
+
+    pf_assert(vector_length(v) == 5);
+    pf_assert_memcmp(a, vector_items(v), 5 * sizeof(int));
+
+    pf_assert(ITER_EINVAL == vector_insert_at(v, &a[0], (int *)NULL, 3));
+    pf_assert(
+        ITER_EINVAL == vector_insert_at(v, (int *)a, vector_get(v, 0), 0)
+    );
+
+    vector_destroy(v);
+    return 0;
+}
+
+int test_vector_remove_at(int seed, int repetition) {
+    int a[] = { 1, 2, 3, 4, 5 };
+    vector(int) v = vector_from_array(a, 5, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert_ok(vector_remove_at(v, vector_get(v, 0), 2));
+    pf_assert(vector_length(v) == 3);
+    pf_assert_memcmp(&a[2], vector_items(v), 3 * sizeof(int));
+
+    pf_assert_ok(vector_remove_at(v, vector_get(v, vector_length(v) - 1), 1));
+    pf_assert(vector_length(v) == 2);
+    pf_assert_memcmp(&a[2], vector_items(v), 2 * sizeof(int));
+
+    pf_assert(ITER_EINVAL == vector_remove_at(v, &a[0], 2));
+    pf_assert(ITER_EINVAL == vector_remove_at(v, (int *)NULL, 2));
+    pf_assert(ITER_EINVAL == vector_remove_at(v, &a[0], 0));
+    pf_assert(ITER_EINVAL == vector_remove_at((vector(int))NULL, &a[0], 2));
+
+    vector_destroy(v);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
@@ -188,5 +250,8 @@ pf_test suite_vector[] = {
     { test_vector_remove, "/vector/remove", 1 },
     { test_vector_from_array, "/vector/from_array", 1 },
     { test_vector_clone, "/vector/clone", 1 },
+    { test_vector_index, "/vector/index", 1 },
+    { test_vector_insert_at, "/vector/insert_at", 1 },
+    { test_vector_remove_at, "/vector/remove_at", 1 },
     { 0 },
 };

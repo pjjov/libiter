@@ -202,6 +202,17 @@ ITER_API void *vector__get(const vector_t *vec, size_t i) {
     return &((unsigned char *)vec->items)[i];
 }
 
+/** size_t vector_index(vector(T) vec, T *item);
+
+    Returns the index of the item pointed at by `item`.
+    Possible error codes: ITER_EINVAL.
+**/
+#define vector_index(m_vec, m_item)                                         \
+    (vector__index(vector_as_base(m_vec), vector_check_type(m_vec, m_item)) \
+     / vector_type_size(m_vec))
+
+size_t vector__index(const vector_t *vec, const void *item);
+
 /** T *vector_items(vector(T) vec);
 
     Returns pointer to the internal buffer used by `vector`
@@ -362,6 +373,26 @@ ITER_API int vector__push(vector_t *vec, const void *items, size_t size) {
     return vector__insert(vec, items, vector__length(vec), size);
 }
 
+/** int vector_insert_at(vector_t *vec, T *items, T *at, size_t size);
+
+    Unlike `vector_insert`, this function inserts at the item pointed by `at`.
+    Possible error codes: ITER_EINVAL, ITER_ENOMEM.
+**/
+#define vector_insert_at(m_vec, m_items, m_at, m_count) \
+    vector__insert_at(                                  \
+        vector_as_base(m_vec),                          \
+        vector_check_type(m_vec, m_items),              \
+        vector_check_type(m_vec, m_at),                 \
+        vector_type_mul(m_vec, (m_count))               \
+    )
+
+ITER_API int vector__insert_at(
+    vector_t *vec, const void *items, void *at, size_t size
+) {
+    size_t i = vector__index(vec, at);
+    return at ? vector__insert(vec, items, i, size) : ITER_EINVAL;
+}
+
 /** int vector_try_insert(vector(T) vec, T *items, size_t i, size_t count);
 
     Attempts to insert `count` items from `items` starting at index `i` without
@@ -411,6 +442,22 @@ ITER_API int vector__pop(vector_t *vec, size_t count) {
     if (!vec || count > vec->length)
         return ITER_EINVAL;
     return vector__remove(vec, vec->length - count, count);
+}
+
+/** int vector_remove_at(vector(T) vec, T *at, size_t count);
+
+    Removes `count` items at the location pointed by `at`.
+    Possible error codes: ITER_EINVAL.
+**/
+#define vector_remove_at(m_vec, m_at, m_count) \
+    vector__remove_at(                         \
+        vector_as_base(m_vec),                 \
+        vector_check_type(m_vec, m_at),        \
+        vector_type_mul(m_vec, (m_count))      \
+    )
+
+ITER_API int vector__remove_at(vector_t *vec, void *at, size_t size) {
+    return vector__remove(vec, vector__index(vec, at), size);
 }
 
 #endif
