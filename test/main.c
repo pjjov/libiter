@@ -9,13 +9,15 @@
 #include <string.h>
 
 extern pf_test suite_vector[];
+extern pf_test suite_hashmap[];
 
 static const pf_test *suites[] = {
     suite_vector,
+    suite_hashmap,
     NULL,
 };
 
-static const char *names[] = { "vector", NULL };
+static const char *names[] = { "vector", "hashmap", NULL };
 
 int main(int argc, char *argv[]) {
     if (argc > 2) {

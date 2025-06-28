@@ -6,6 +6,7 @@ project('libiter', 'c')
 
 src = [
     'src/global.c',
+    'src/hashmap.c',
     'src/vector.c',
 ]
 
@@ -36,6 +37,7 @@ tests = executable(
     'libiter-test',
     dependencies: [iter_dep],
     sources: [
+        'test/hashmap.c',
         'test/main.c',
         'test/vector.c',
     ]
