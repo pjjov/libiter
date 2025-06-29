@@ -9,10 +9,14 @@
 #include <iter/error.h>
 #include <iter/hash.h>
 #include <iter/hashmap.h>
+#include <string.h>
 
 #define META_SIZE 16
 #define META_EMPTY 0
 #define META_TOMB 1
+
+#define HASHMAP_GROWTH 1.5
+#define HASHMAP_THRESHOLD 0.7
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -51,6 +55,79 @@ union hashmeta {
     __m128i sse[META_SIZE / 16];
 #endif
 };
+
+static inline uint64_t meta_match(union hashmeta *meta, uint8_t part) {
+    uint64_t out = 0;
+#ifdef __SSE2__
+    __m128i tmp = _mm_set1_epi8(part);
+    for (int i = 0; i < META_SIZE / 16; i++) {
+        int result = _mm_movemask_epi8(_mm_cmpeq_epi8(meta->sse[i], tmp));
+        out |= result << (i * 16);
+    }
+#else
+    for (int i = 0; i < META_SIZE; i++) {
+        if (meta->parts[i] == part)
+            out |= 1 << i;
+    }
+#endif
+    return out;
+}
+
+static inline uint8_t meta_part(hash_t hash) {
+    uint8_t part = hash & 0xFF;
+    if (part == META_EMPTY)
+        part++;
+    if (part == META_TOMB)
+        part++;
+    return part;
+}
+
+static inline int compare_key(
+    const hashmap_t *map, const void *x, const void *y
+) {
+    return map->hash ? map->hash(x, y, map->hasher) : memcmp(x, y, map->ksize);
+}
+
+static inline uint64_t get_hash(const hashmap_t *map, const void *key) {
+    return map->hash ? map->hash(key, NULL, map->hasher)
+                     : map->hasher(key, map->ksize);
+}
+
+static inline union hashmeta *get_meta(const hashmap_t *map, size_t b) {
+    return (union hashmeta *)((uintptr_t)map->buffer + map->bucketSize * b);
+}
+
+static inline void *get_key(
+    const hashmap_t *map, union hashmeta *meta, uint8_t i
+) {
+    return (void *)((uintptr_t)meta + map->koffset + i * map->ksize);
+}
+
+static inline void *get_value(
+    const hashmap_t *map, union hashmeta *meta, uint8_t i
+) {
+    return (void *)((uintptr_t)meta + map->voffset + i * map->vsize);
+}
+
+static inline size_t get_mask(const hashmap_t *map) {
+    return (hashmap__capacity(map) - 1) / META_SIZE;
+}
+
+/* graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2 */
+static inline size_t round_pow2(size_t v) {
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+#if SIZE_MAX > UINT32_MAX
+    v |= v >> 32;
+#endif
+    v++;
+
+    return v;
+}
 
 hashmap_t *hashmap__init(
     hashmap_t *out, allocator_t *allocator, const struct hashmap_layout *layout
