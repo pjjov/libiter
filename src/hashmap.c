@@ -243,3 +243,67 @@ int hashmap__reserve(hashmap_t *map, size_t count) {
 
     return (map->count == 0) ? grow_empty(map, count) : grow(map, count);
 }
+
+#define BITSET_EACH(m_bitset, m_out)              \
+    for (m_out = 0; (m_bitset) >> m_out; m_out++) \
+        if ((m_bitset) & (1 << (m_out)))
+
+#define BUCKET_EACH(m_hash, m_mask, m_out)                                 \
+    for (m_out = (m_hash) & (m_mask);; (m_out) = ((m_out) + 1) & (m_mask))
+
+void *hashmap__get(const hashmap_t *map, const void *key) {
+    if (!map || !key || map->count == 0)
+        return NULL;
+
+    hash_t hash = get_hash(map, key);
+    uint8_t i, part = meta_part(hash);
+    size_t b, mask = get_mask(map);
+
+    BUCKET_EACH(hash, mask, b) {
+        union hashmeta *meta = get_meta(map, b);
+        uint64_t matches = meta_match(meta, part);
+
+        BITSET_EACH(matches, i) {
+            if (0 == compare_key(map, key, get_key(map, meta, i)))
+                return get_value(map, meta, i);
+        }
+
+        if (meta_match(meta, META_EMPTY))
+            break;
+    }
+
+    return NULL;
+}
+
+int hashmap__set(hashmap_t *map, const void *key, const void *value) {
+    if (!map || !key || !value)
+        return ITER_EINVAL;
+
+    if (hashmap__reserve(map, 1))
+        return ITER_ENOMEM;
+
+    hash_t hash = get_hash(map, key);
+    uint8_t i, part = meta_part(hash);
+    size_t b, mask = get_mask(map);
+
+    BUCKET_EACH(hash, mask, b) {
+        union hashmeta *meta = get_meta(map, b);
+        uint64_t matches = meta_match(meta, part);
+
+        BITSET_EACH(matches, i) {
+            if (0 == compare_key(map, key, get_key(map, meta, i))) {
+                memcpy(get_value(map, meta, i), value, map->vsize);
+                return ITER_OK;
+            }
+        }
+
+        matches = meta_match(meta, META_EMPTY);
+        BITSET_EACH(matches, i) {
+            map->count++;
+            meta->parts[i] = part;
+            memcpy(get_key(map, meta, i), key, map->ksize);
+            memcpy(get_value(map, meta, i), value, map->vsize);
+            return ITER_OK;
+        }
+    }
+}

@@ -33,4 +33,24 @@
         m_cntr                                                                \
     ))
 
+#ifdef PF_HAS_STMT_EXPR
+    #define generic_ret_key(m_type, m_inst, m_ret) \
+        ({                                         \
+            m_type instance = (m_inst);            \
+            (void)instance;                        \
+            (m_ret);                               \
+        })
+#else
+    #define generic_ret_key(m_type, m_inst, m_ret) (m_ret)
+#endif
+
+#define generic_check_key(m_cntr, m_key, m_inst)                         \
+    generic_ret_key(                                                     \
+        generic_container(                                               \
+            m_cntr, typeof(*(m_key)), generic_value_type(m_cntr, m_inst) \
+        ),                                                               \
+        (m_inst),                                                        \
+        (m_key)                                                          \
+    )
+
 #endif

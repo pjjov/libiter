@@ -64,6 +64,8 @@ struct hashmap_layout {
 #define hashmap_as_base(m_hashmap) ((hashmap_t *)(m_hashmap))
 #define hashmap_check_value(m_hashmap, m_value)        \
     generic_check_value(hashmap_t, m_hashmap, m_value)
+#define hashmap_check_key(m_hashmap, m_key)        \
+    generic_check_key(hashmap_t, m_key, m_hashmap)
 
 /** hashmap(K, V) hashmap_init(
         type K, type V,
@@ -187,5 +189,30 @@ ITER_API size_t hashmap__capacity(const hashmap_t *map) {
 ITER_API allocator_t *hashmap__allocator(const hashmap_t *map) {
     return map ? map->allocator : NULL;
 }
+
+/** void *hashmap_get(hashmap(K, V) map, K *key);
+
+    Returns the value associated with `key`, or `NULL` if not found.
+**/
+#define hashmap_get(m_map, m_key)                               \
+    ((hashmap_value_ptr(m_map))hashmap__get(                    \
+        hashmap_as_base(m_map), hashmap_check_key(m_map, m_key) \
+    ))
+
+void *hashmap__get(const hashmap_t *map, const void *key);
+
+/** int hashmap_set(hashmap(K, V) map, K *key, V *value);
+
+    Sets the value associated with `key` to `value`, inserting if not present.
+    Possible error codes: ITER_EEXIST, ITER_EINVAL, ITER_ENOMEM.
+**/
+#define hashmap_set(m_map, m_key, m_value)          \
+    hashmap__set(                                   \
+        hashmap_as_base(m_map),                     \
+        (void *)hashmap_check_key(m_map, m_key),    \
+        (void *)hashmap_check_value(m_map, m_value) \
+    )
+
+int hashmap__set(hashmap_t *map, const void *key, const void *value);
 
 #endif
