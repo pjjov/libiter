@@ -307,3 +307,64 @@ int hashmap__set(hashmap_t *map, const void *key, const void *value) {
         }
     }
 }
+
+int hashmap__insert(hashmap_t *map, const void *key, const void *value) {
+    if (!map || !key || !value)
+        return ITER_EINVAL;
+
+    if (hashmap__reserve(map, 1))
+        return ITER_ENOMEM;
+
+    hash_t hash = get_hash(map, key);
+    uint8_t i, part = meta_part(hash);
+    size_t b, mask = get_mask(map);
+
+    BUCKET_EACH(hash, mask, b) {
+        union hashmeta *meta = get_meta(map, b);
+        uint64_t matches = meta_match(meta, part);
+
+        BITSET_EACH(matches, i) {
+            if (0 == compare_key(map, key, get_key(map, meta, i)))
+                return ITER_EEXIST;
+        }
+
+        matches = meta_match(meta, META_EMPTY);
+        BITSET_EACH(matches, i) {
+            map->count++;
+            meta->parts[i] = part;
+            memcpy(get_key(map, meta, i), key, map->ksize);
+            memcpy(get_value(map, meta, i), value, map->vsize);
+            return ITER_OK;
+        }
+    }
+}
+
+int hashmap__remove(hashmap_t *map, const void *key) {
+    if (!map || !key)
+        return ITER_EINVAL;
+
+    if (map->count == 0)
+        return ITER_ENOENT;
+
+    hash_t hash = get_hash(map, key);
+    uint8_t i, part = meta_part(hash);
+    size_t b, mask = get_mask(map);
+
+    BUCKET_EACH(hash, mask, b) {
+        union hashmeta *meta = get_meta(map, b);
+        uint64_t matches = meta_match(meta, part);
+
+        BITSET_EACH(matches, i) {
+            if (0 == compare_key(map, key, get_key(map, meta, i))) {
+                meta->parts[i] = META_TOMB;
+                map->count--;
+                return ITER_OK;
+            }
+        }
+
+        if (meta_match(meta, META_EMPTY))
+            break;
+    }
+
+    return ITER_ENOENT;
+}

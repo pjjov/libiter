@@ -215,4 +215,28 @@ void *hashmap__get(const hashmap_t *map, const void *key);
 
 int hashmap__set(hashmap_t *map, const void *key, const void *value);
 
+/** int hashmap_insert(hashmap(K, V) map, K *key, V *value);
+
+    Attempts to insert the key-value pair if not already present.
+    Possible error codes: ITER_EEXIST, ITER_EINVAL, ITER_ENOMEM.
+**/
+#define hashmap_insert(m_map, m_key, m_value)       \
+    hashmap__insert(                                \
+        hashmap_as_base(m_map),                     \
+        (void *)hashmap_check_key(m_map, m_key),    \
+        (void *)hashmap_check_value(m_map, m_value) \
+    )
+
+int hashmap__insert(hashmap_t *map, const void *key, const void *value);
+
+/** int hashmap_remove(hashmap(K, V) map, K *key);
+
+    Removes the key-value pair matched by `key`, if found.
+    Possible error codes: ITER_EINVAL, ITER_ENOENT.
+**/
+#define hashmap_remove(m_map, m_key)                                         \
+    hashmap__remove(hashmap_as_base(m_map), hashmap_check_key(m_map, m_key))
+
+int hashmap__remove(hashmap_t *map, const void *key);
+
 #endif
