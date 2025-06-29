@@ -368,3 +368,28 @@ int hashmap__remove(hashmap_t *map, const void *key) {
 
     return ITER_ENOENT;
 }
+
+int hashmap__fast_insert(hashmap_t *map, const void *key, const void *value) {
+    if (!map || !key || !value)
+        return ITER_EINVAL;
+
+    if (hashmap__reserve(map, 1))
+        return ITER_ENOMEM;
+
+    hash_t hash = get_hash(map, key);
+    uint8_t i, part = meta_part(hash);
+    size_t b, mask = get_mask(map);
+
+    BUCKET_EACH(hash, mask, b) {
+        union hashmeta *meta = get_meta(map, b);
+        uint64_t matches = meta_match(meta, META_EMPTY);
+
+        BITSET_EACH(matches, i) {
+            map->count++;
+            meta->parts[i] = part;
+            memcpy(get_key(map, meta, i), key, map->ksize);
+            memcpy(get_value(map, meta, i), value, map->vsize);
+            return ITER_OK;
+        }
+    }
+}
