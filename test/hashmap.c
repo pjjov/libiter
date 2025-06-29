@@ -33,8 +33,21 @@ int test_hashmap_create(int seed, int rep) {
     return 0;
 }
 
+int test_hashmap_reserve(int seed, int rep) {
+    hashmap(int, double) map = hashmap_create(int, double, NULL);
+    pf_assert_not_null(map);
+
+    pf_assert_ok(hashmap_reserve(map, 10));
+    pf_assert(hashmap_capacity(map) >= 10);
+    pf_assert(hashmap_count(map) == 0);
+
+    hashmap_destroy(map);
+    return 0;
+}
+
 pf_test suite_hashmap[] = {
     { test_hashmap_init, "/hashmap/init", 1 },
     { test_hashmap_create, "/hashmap/create", 1 },
+    { test_hashmap_reserve, "/hashmap/reserve", 1 },
     { 0 },
 };

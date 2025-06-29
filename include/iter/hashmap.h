@@ -96,7 +96,7 @@ void hashmap__free(hashmap_t *map);
 
 /** hashmap(K, V) hashmap_create(type K, type V, allocator_t *allocator);
 
-    Creates a new instance of `hashmap(K, V)`, allocated with `allocator.
+    Creates a new instance of `hashmap(K, V)`, allocated with `allocator`.
     Returns `NULL` if out of memory or `sizeof(K) == 0`.
 
     > If `allocator` is `NULL`, the default one will be used.
@@ -106,6 +106,27 @@ void hashmap__free(hashmap_t *map);
 
 hashmap_t *hashmap__create(
     allocator_t *allocator, const struct hashmap_layout *layout
+);
+
+/** hashmap(K, V) hashmap_with_capacity(
+        type K, type V,
+        size_t capacity,
+        allocator_t *allocator
+    );
+
+    Creates a new instance of `hashmap(K, V)`, allocated with `allocator`,
+    and reserves space for at least `capacity` more items.
+    Returns `NULL` if out of memory or `sizeof(K) == 0`.
+
+    > If `allocator` is `NULL`, the default one will be used.
+**/
+#define hashmap_with_capacity(K, V, m_capacity, m_allocator)    \
+    ((hashmap(K, V))hashmap__with_capacity(                     \
+        (m_capacity), (m_allocator), &hashmap_make_layout(K, V) \
+    ))
+
+hashmap_t *hashmap__with_capacity(
+    size_t capacity, allocator_t *allocator, const struct hashmap_layout *layout
 );
 
 /** void hashmap_destroy(hashmap(K, V) map);
@@ -126,6 +147,16 @@ void hashmap__destroy(hashmap_t *map);
     hashmap__use_hash(hashmap_as_base(m_map), (m_hash), (m_hasher))
 
 int hashmap__use_hash(hashmap_t *map, hash_fn *hash, hasher_fn *hasher);
+
+/** int hashmap_reserve(hashmap(K, V) map, size_t count);
+
+    Reserves space to fit at least `count` more items.
+    Possible error codes: ITER_EINVAL, ITER_ENOMEM.
+**/
+#define hashmap_reserve(m_map, m_count)                 \
+    hashmap__reserve(hashmap_as_base(m_map), (m_count))
+
+int hashmap__reserve(hashmap_t *map, size_t count);
 
 /** size_t hashmap_count(hashmap(K, V) map);
 

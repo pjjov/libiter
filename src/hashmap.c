@@ -17,6 +17,7 @@
 
 #define HASHMAP_GROWTH 1.5
 #define HASHMAP_THRESHOLD 0.7
+#define HASHMAP_MIN META_SIZE
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
@@ -174,6 +175,19 @@ hashmap_t *hashmap__create(
     return hashmap__init(out, allocator, layout);
 }
 
+hashmap_t *hashmap__with_capacity(
+    size_t capacity, allocator_t *allocator, const struct hashmap_layout *layout
+) {
+    hashmap_t *out = hashmap__create(allocator, layout);
+
+    if (out && capacity > 0 && hashmap__reserve(out, capacity)) {
+        hashmap__destroy(out);
+        return NULL;
+    }
+
+    return out;
+}
+
 void hashmap__free(hashmap_t *map) {
     if (map) {
         size_t buckets = (1 << map->capacityLog2) / META_SIZE;
@@ -195,4 +209,37 @@ int hashmap__use_hash(hashmap_t *map, hash_fn *hash, hasher_fn *hasher) {
     map->hash = hash;
     map->hasher = hasher ? hasher : &hasher_fnv1a;
     return ITER_OK;
+}
+
+int grow_empty(hashmap_t *map, size_t count) {
+    size_t capacity = MAX(
+        round_pow2(hashmap__capacity(map) + count), HASHMAP_MIN
+    );
+
+    void *buffer = reallocate(
+        map->allocator,
+        map->buffer,
+        sizeof(union hashmeta) * capacity / META_SIZE,
+        sizeof(union hashmeta) * capacity * 2 / META_SIZE
+    );
+
+    if (!buffer)
+        return ITER_ENOMEM;
+
+    map->buffer = buffer;
+    map->capacityLog2 = sizeof(size_t) * 8 - __builtin_clzl(capacity);
+    return ITER_OK;
+}
+
+int grow(hashmap_t *map, size_t count) { return ITER_ENOMEM; }
+
+int hashmap__reserve(hashmap_t *map, size_t count) {
+    if (!map)
+        return ITER_EINVAL;
+
+    size_t capacity = hashmap__capacity(map);
+    if (map->count + count <= capacity * HASHMAP_THRESHOLD)
+        return ITER_OK;
+
+    return (map->count == 0) ? grow_empty(map, count) : grow(map, count);
 }
