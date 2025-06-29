@@ -133,7 +133,9 @@ int hashmap__use_hash(hashmap_t *map, hash_fn *hash, hasher_fn *hasher);
 **/
 #define hashmap_count(m_map) hashmap__count(hashmap_as_base(m_map))
 
-ITER_API size_t hashmap__count(hashmap_t *map) { return map ? map->count : 0; }
+ITER_API size_t hashmap__count(const hashmap_t *map) {
+    return map ? map->count : 0;
+}
 
 /** size_t hashmap_capacity(hashmap(K, V) map);
 
@@ -141,7 +143,7 @@ ITER_API size_t hashmap__count(hashmap_t *map) { return map ? map->count : 0; }
 **/
 #define hashmap_capacity(m_map) hashmap__capacity(hashmap_as_base(m_map))
 
-ITER_API size_t hashmap__capacity(hashmap_t *map) {
+ITER_API size_t hashmap__capacity(const hashmap_t *map) {
     return map && map->buffer ? 1 << map->capacityLog2 : 0;
 }
 
@@ -151,7 +153,7 @@ ITER_API size_t hashmap__capacity(hashmap_t *map) {
 **/
 #define hashmap_allocator(m_map) hashmap__allocator(hashmap_as_base(m_map))
 
-ITER_API allocator_t *hashmap__allocator(hashmap_t *map) {
+ITER_API allocator_t *hashmap__allocator(const hashmap_t *map) {
     return map ? map->allocator : NULL;
 }
 
