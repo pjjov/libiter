@@ -211,11 +211,7 @@ int hashmap__use_hash(hashmap_t *map, hash_fn *hash, hasher_fn *hasher) {
     return ITER_OK;
 }
 
-int grow_empty(hashmap_t *map, size_t count) {
-    size_t capacity = MAX(
-        round_pow2(hashmap__capacity(map) + count), HASHMAP_MIN
-    );
-
+int grow_empty(hashmap_t *map, size_t capacity) {
     void *buffer = reallocate(
         map->allocator,
         map->buffer,
@@ -231,7 +227,31 @@ int grow_empty(hashmap_t *map, size_t count) {
     return ITER_OK;
 }
 
-int grow(hashmap_t *map, size_t count) { return ITER_ENOMEM; }
+int grow_not_empty(hashmap_t *map, size_t capacity) {
+    hashmap_t tmp = *map;
+    tmp.buffer = NULL;
+    tmp.count = 0;
+
+    if (!grow_empty(&tmp, capacity))
+        return ITER_ENOMEM;
+
+    for (size_t b = 0; b < hashmap__capacity(map) / META_SIZE; b++) {
+        union hashmeta *meta = get_meta(map, b);
+
+        for (uint8_t i = 0; i < META_SIZE; i++) {
+            if (meta->parts[i] == META_EMPTY || meta->parts[i] == META_TOMB)
+                continue;
+
+            void *key = get_key(map, meta, i);
+            void *value = get_value(map, meta, i);
+            hashmap__fast_insert(&tmp, key, value);
+        }
+    }
+
+    hashmap__free(map);
+    *map = tmp;
+    return ITER_OK;
+}
 
 int hashmap__reserve(hashmap_t *map, size_t count) {
     if (!map)
@@ -241,7 +261,12 @@ int hashmap__reserve(hashmap_t *map, size_t count) {
     if (map->count + count <= capacity * HASHMAP_THRESHOLD)
         return ITER_OK;
 
-    return (map->count == 0) ? grow_empty(map, count) : grow(map, count);
+    size_t required = hashmap__capacity(map);
+    capacity = MAX(round_pow2(required), HASHMAP_MIN);
+
+    if (map->count == 0)
+        return grow_empty(map, capacity);
+    return grow_not_empty(map, capacity);
 }
 
 #define BITSET_EACH(m_bitset, m_out)              \
