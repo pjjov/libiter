@@ -114,6 +114,10 @@ static inline size_t get_mask(const hashmap_t *map) {
     return (hashmap__capacity(map) - 1) / META_SIZE;
 }
 
+static inline size_t bucket_count(const hashmap_t *map) {
+    return hashmap__capacity(map) / META_SIZE;
+}
+
 /* graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2 */
 static inline size_t round_pow2(size_t v) {
     v--;
@@ -224,6 +228,7 @@ int grow_empty(hashmap_t *map, size_t capacity) {
 
     map->buffer = buffer;
     map->capacityLog2 = sizeof(size_t) * 8 - __builtin_clzl(capacity);
+    hashmap__clear(map);
     return ITER_OK;
 }
 
@@ -235,7 +240,7 @@ int grow_not_empty(hashmap_t *map, size_t capacity) {
     if (!grow_empty(&tmp, capacity))
         return ITER_ENOMEM;
 
-    for (size_t b = 0; b < hashmap__capacity(map) / META_SIZE; b++) {
+    for (size_t b = 0; b < bucket_count(map); b++) {
         union hashmeta *meta = get_meta(map, b);
 
         for (uint8_t i = 0; i < META_SIZE; i++) {
@@ -392,6 +397,17 @@ int hashmap__remove(hashmap_t *map, const void *key) {
     }
 
     return ITER_ENOENT;
+}
+
+void hashmap__clear(hashmap_t *map) {
+    if (!map)
+        return;
+
+    map->count = 0;
+    for (size_t b = 0; b < bucket_count(map); b++) {
+        union hashmeta *meta = get_meta(map, b);
+        memset(meta, 0, sizeof(union hashmeta));
+    }
 }
 
 int hashmap__fast_insert(hashmap_t *map, const void *key, const void *value) {

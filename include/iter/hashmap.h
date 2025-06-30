@@ -239,6 +239,14 @@ int hashmap__insert(hashmap_t *map, const void *key, const void *value);
 
 int hashmap__remove(hashmap_t *map, const void *key);
 
+/** void hashmap_clear(hashmap(K, V) map);
+
+    Removes all items from `map`, silently returning if it's `NULL`.
+**/
+#define hashmap_clear(m_map) hashmap__clear(hashmap_as_base(m_map))
+
+void hashmap__clear(hashmap_t *map);
+
 /** int hashmap_fast_insert(hashmap(K, V) map, const K *key, const V *value);
 
     Attempts to insert the key-value pair without checking if they have already
