@@ -7,6 +7,7 @@ project('libiter', 'c')
 src = [
     'src/global.c',
     'src/hashmap.c',
+    'src/iter.c',
     'src/vector.c',
 ]
 
@@ -38,9 +39,12 @@ tests = executable(
     dependencies: [iter_dep],
     sources: [
         'test/hashmap.c',
+        'test/iter.c',
         'test/main.c',
         'test/vector.c',
     ]
 )
 
+test('libiter/hashmap', tests, args: ['hashmap'], protocol: 'tap')
+test('libiter/iter', tests, args: ['iter'], protocol: 'tap')
 test('libiter/vector', tests, args: ['vector'], protocol: 'tap')
