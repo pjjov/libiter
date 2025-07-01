@@ -180,3 +180,24 @@ size_t vector__index(const vector_t *vec, const void *item) {
 
     return (uintptr_t)item - (uintptr_t)vec->items;
 }
+
+iter_t *vector__iter(vector_t *vec, iter_t *out) {
+    return vec ? iter__from_array(out, vec->items, vec->length) : NULL;
+}
+
+vector_t *vector__from_iter(iter_t *it, allocator_t *allocator, size_t stride) {
+    if (!it || stride == 0)
+        return NULL;
+
+    vector_t *out = vector__with_capacity(stride, allocator);
+    if (out) {
+        while (!iter__call(it, vector__end(out), stride, 0)) {
+            out->length += stride;
+
+            if (vector__reserve(out, stride))
+                break;
+        }
+    }
+
+    return out;
+}

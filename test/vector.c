@@ -239,6 +239,28 @@ int test_vector_remove_at(int seed, int repetition) {
     return 0;
 }
 
+int test_vector_iter(int seed, int rep) {
+    int out, a[5] = { 1, 2, 3, 4, 5 };
+    iter_t storage;
+
+    vector(int) v1 = vector_from_array(a, 5, NULL);
+    pf_assert_not_null(v1);
+
+    iter(int) it = vector_iter(v1, &storage);
+    pf_assert_not_null(it);
+
+    vector(int) v2 = vector_from_iter(it, NULL);
+    pf_assert_not_null(v2);
+
+    pf_assert(5 == vector_length(v2));
+    pf_assert_memcmp(vector_items(v1), vector_items(v2), sizeof(int) * 5);
+    pf_assert(ITER_ENODATA == iter_next(it, &out));
+
+    vector_destroy(v1);
+    vector_destroy(v2);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
@@ -253,5 +275,6 @@ pf_test suite_vector[] = {
     { test_vector_index, "/vector/index", 1 },
     { test_vector_insert_at, "/vector/insert_at", 1 },
     { test_vector_remove_at, "/vector/remove_at", 1 },
+    { test_vector_iter, "/vectir/iter", 1 },
     { 0 },
 };

@@ -8,8 +8,10 @@
 #ifndef LIBITER_VECTOR_H
 #define LIBITER_VECTOR_H
 
-#include "error.h"
-#include "generic.h"
+#include <iter/error.h>
+#include <iter/generic.h>
+#include <iter/iter.h>
+
 #include <allocator.h>
 #include <pf_overflow.h>
 #include <stddef.h>
@@ -122,6 +124,18 @@ vector_t *vector__with_capacity(size_t cap, allocator_t *allocator);
 vector_t *vector__from_array(
     const void *items, size_t length, allocator_t *alloc
 );
+
+/** vector(T) vector_from_iter(iter(T) it, allocator_t *allocator)
+
+    Creates a new vector with type `T` and inserts all items from `it`.
+    Returns `NULL` if out of memory or `sizeof(T) == 0`.
+**/
+#define vector_from_iter(m_it, m_allocator)                     \
+    ((vector(iter_type(m_it)))vector__from_iter(                \
+        iter_as_base(m_it), (m_allocator), iter_type_size(m_it) \
+    ))
+
+vector_t *vector__from_iter(iter_t *it, allocator_t *allocator, size_t stride);
 
 /** vector(T) vector_wrap(T *array, size_t length, allocator_t *allocator);
 
@@ -459,5 +473,16 @@ ITER_API int vector__pop(vector_t *vec, size_t count) {
 ITER_API int vector__remove_at(vector_t *vec, void *at, size_t size) {
     return vector__remove(vec, vector__index(vec, at), size);
 }
+
+/** iter(T) vector_iter(vector(T) vec, iter_t *out);
+
+    Initializes `out` as an iterator traversing items present in `vec`.
+
+    > Resizing the vector will invalidate the returned iterator.
+**/
+#define vector_iter(m_vec, m_out)                                            \
+    ((iter(vector_type(m_vec)))vector__iter(vector_as_base(m_vec), (m_out)))
+
+iter_t *vector__iter(vector_t *vec, iter_t *out);
 
 #endif
