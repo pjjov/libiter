@@ -160,7 +160,7 @@ int hashmap__use_hash(hashmap_t *map, hash_fn *hash, hasher_fn *hasher);
 
 int hashmap__reserve(hashmap_t *map, size_t count);
 
-/** size_t hashmap_count(hashmap(K, V) map);
+/** size_t hashmap_count(const hashmap(K, V) map);
 
     Returns the number of items in `map`.
 **/
@@ -170,7 +170,7 @@ ITER_API size_t hashmap__count(const hashmap_t *map) {
     return map ? map->count : 0;
 }
 
-/** size_t hashmap_capacity(hashmap(K, V) map);
+/** size_t hashmap_capacity(const hashmap(K, V) map);
 
     Returns the number of slots reserved for storing items in `map`.
 **/
@@ -180,7 +180,7 @@ ITER_API size_t hashmap__capacity(const hashmap_t *map) {
     return map && map->buffer ? 1 << map->capacityLog2 : 0;
 }
 
-/** allocator_t *hashmap_allocator(hashmap(K, V) map);
+/** allocator_t *hashmap_allocator(const hashmap(K, V) map);
 
     Returns the allocator used by `map`.
 **/
@@ -190,7 +190,7 @@ ITER_API allocator_t *hashmap__allocator(const hashmap_t *map) {
     return map ? map->allocator : NULL;
 }
 
-/** void *hashmap_get(hashmap(K, V) map, const K *key);
+/** V *hashmap_get(const hashmap(K, V) map, const K *key);
 
     Returns the value associated with `key`, or `NULL` if not found.
 **/
