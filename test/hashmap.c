@@ -97,11 +97,41 @@ int test_hashmap_insert_remove(int seed, int rep) {
     return 0;
 }
 
+int test_hashmap_iter(int seed, int rep) {
+    int keys[5] = { 1, 2, 3, 4, 5 };
+    double values[5] = { 1.1, 2.2, 3.3, 4.4, 5.5 };
+    iter_t storage;
+
+    hashmap(int, double) map = hashmap_create(int, double, NULL);
+    pf_assert_not_null(map);
+
+    for (size_t i = 0; i < 5; i++)
+        pf_assert_ok(hashmap_insert(map, &keys[i], &values[i]));
+
+    iter(double) it = hashmap_iter(map, &storage);
+    pf_assert_not_null(it);
+
+    double out, sum = 0;
+    size_t count = 0;
+    for (; 0 == iter_next(it, &out); count++) {
+        pf_assert(count < 5);
+        sum += out;
+    }
+
+    pf_assert(count == 5);
+    pf_assert(sum == 16.5);
+    pf_assert(ITER_ENODATA == iter_next(it, &out));
+
+    hashmap_destroy(map);
+    return 0;
+}
+
 pf_test suite_hashmap[] = {
     { test_hashmap_init, "/hashmap/init", 1 },
     { test_hashmap_create, "/hashmap/create", 1 },
     { test_hashmap_reserve, "/hashmap/reserve", 1 },
     { test_hashmap_get_set, "/hashmap/get_set", 1 },
     { test_hashmap_insert_remove, "/hashmap/insert_remove", 1 },
+    { test_hashmap_iter, "/hashmap/iter", 1 },
     { 0 },
 };

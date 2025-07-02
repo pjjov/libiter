@@ -5,11 +5,14 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
-#define ITER_API
 #include <iter/error.h>
 #include <iter/hash.h>
-#include <iter/hashmap.h>
+#include <iter/iter.h>
 #include <string.h>
+
+#undef ITER_API
+#define ITER_API
+#include <iter/hashmap.h>
 
 #define META_SIZE 16
 #define META_EMPTY 0
@@ -99,13 +102,13 @@ static inline union hashmeta *get_meta(const hashmap_t *map, size_t b) {
 }
 
 static inline void *get_key(
-    const hashmap_t *map, union hashmeta *meta, uint8_t i
+    const hashmap_t *map, const union hashmeta *meta, uint8_t i
 ) {
     return (void *)((uintptr_t)meta + map->koffset + i * map->ksize);
 }
 
 static inline void *get_value(
-    const hashmap_t *map, union hashmeta *meta, uint8_t i
+    const hashmap_t *map, const union hashmeta *meta, uint8_t i
 ) {
     return (void *)((uintptr_t)meta + map->voffset + i * map->vsize);
 }
@@ -433,4 +436,56 @@ int hashmap__fast_insert(hashmap_t *map, const void *key, const void *value) {
             return ITER_OK;
         }
     }
+}
+
+static int hashmap_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
+    if (!it || it == out)
+        return ITER_EINVAL;
+
+    hashmap_t *map = it->container;
+    const union hashmeta *bucket = it->bucket;
+    const union hashmeta *end = get_meta(map, bucket_count(map));
+    uintptr_t i = (uintptr_t)it->current;
+
+    if (size != map->vsize)
+        return ITER_EINVAL;
+
+    if (out)
+        skip++;
+
+    void *value = NULL;
+    while (skip > 0 && bucket < end) {
+        uint8_t part = bucket->parts[i];
+
+        if (part != META_EMPTY && part != META_TOMB) {
+            value = get_value(map, bucket, i);
+            skip--;
+        }
+
+        if (++i >= META_SIZE) {
+            bucket = (void *)((uintptr_t)bucket + map->bucketSize);
+            i = 0;
+        }
+    }
+
+    it->bucket = bucket;
+    it->current = (void *)i;
+
+    if (out && value) {
+        memcpy(out, value, map->vsize);
+        return ITER_OK;
+    }
+
+    return out ? ITER_ENODATA : ITER_OK;
+}
+
+iter_t *hashmap__iter(hashmap_t *map, iter_t *out) {
+    if (!map || !out)
+        return NULL;
+
+    out->call = &hashmap_iter_fn;
+    out->container = map;
+    out->bucket = map->buffer;
+    out->current = NULL;
+    return out;
 }

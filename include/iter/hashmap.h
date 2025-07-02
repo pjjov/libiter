@@ -11,6 +11,7 @@
 #include <allocator.h>
 #include <iter/generic.h>
 #include <iter/hash.h>
+#include <iter/iter.h>
 
 #ifndef ITER_API
     #define ITER_API static inline
@@ -58,7 +59,7 @@ struct hashmap_layout {
     size_t valign;
 };
 
-#define hashmap_value(m_hashmap) generic_value(hashmap_t, m_hashmap)
+#define hashmap_value(m_hashmap) generic_value_type(hashmap_t, m_hashmap)
 #define hashmap_value_ptr(m_hashmap) generic_value_ptr(hashmap_t, m_hashmap)
 #define hashmap_value_size(m_hashmap) generic_value_size(hashmap_t, m_hashmap)
 #define hashmap_as_base(m_hashmap) ((hashmap_t *)(m_hashmap))
@@ -261,5 +262,16 @@ void hashmap__clear(hashmap_t *map);
     )
 
 int hashmap__fast_insert(hashmap_t *map, const void *key, const void *value);
+
+/** iter(V) hashmap_iter(hashmap(K, V) map, iter_t *out);
+
+    Initializes `out` as an iterator traversing values present in `map`.
+
+    > Inserting items or reserving space will invalidate the returned iterator.
+**/
+#define hashmap_iter(m_map, m_out) \
+    ((iter(hashmap_value(m_map)))hashmap__iter(hashmap_as_base(m_map), (m_out)))
+
+iter_t *hashmap__iter(hashmap_t *map, iter_t *out);
 
 #endif
