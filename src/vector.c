@@ -211,6 +211,17 @@ size_t vector__index(const vector_t *vec, const void *item) {
     return (uintptr_t)item - (uintptr_t)vec->items;
 }
 
+int vector__each(vector_t *vec, vector_each_fn *each, void *user, size_t size) {
+    if (!vec || !each || size == 0)
+        return ITER_EINVAL;
+
+    for (size_t i = 0; i < vec->length; i += size)
+        if (each(vector__slot(vec, i), user))
+            return ITER_EINTR;
+
+    return ITER_OK;
+}
+
 iter_t *vector__iter(vector_t *vec, iter_t *out) {
     return vec ? iter__from_array(out, vec->items, vec->length) : NULL;
 }

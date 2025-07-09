@@ -505,6 +505,25 @@ int vector__swap_remove(vector_t *vec, size_t i, size_t size);
 
 int vector__swap(vector_t *vec, size_t i, size_t j, size_t size);
 
+/** int vector_each(vector(T) vec, vector_each *each, void *user);
+
+    Calls the `each` callback for each item present in `vec`,
+    stopping if a non-zero value is returned by one of the calls.
+
+    ```c
+    typedef int(vector_each_fn)(void *item, void *user);
+    ```
+
+    Possible error codes: ITER_EINVAL, ITER_EINTR.
+**/
+#define vector_each(m_vec, m_each, m_user)                                 \
+    vector__each(                                                          \
+        vector_as_base(m_vec), (m_each), (m_user), vector_type_size(m_vec) \
+    )
+
+typedef int(vector_each_fn)(void *item, void *user);
+int vector__each(vector_t *vec, vector_each_fn *each, void *user, size_t size);
+
 /** iter(T) vector_iter(vector(T) vec, iter_t *out);
 
     Initializes `out` as an iterator traversing items present in `vec`.

@@ -306,6 +306,24 @@ int test_vector_iter(int seed, int rep) {
     return 0;
 }
 
+int each_mul(void *item, void *user) {
+    *(int *)item *= *(int *)user;
+    return 0;
+}
+
+int test_vector_each(int seed, int rep) {
+    int b = 5, a[5] = { 1, 2, 3, 4, 5 };
+    vector(int) v = vector_from_array(a, 5, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert_ok(vector_each(v, each_mul, &b));
+    for (int i = 0; i < 5; i++)
+        pf_assert(*vector_get(v, i) == 5 * a[i]);
+
+    vector_destroy(v);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
@@ -323,5 +341,6 @@ pf_test suite_vector[] = {
     { test_vector_swap_remove, "/vector/swap_remove", 1 },
     { test_vector_swap, "/vector/swap", 1 },
     { test_vector_iter, "/vector/iter", 1 },
+    { test_vector_each, "/vector/each", 1 },
     { 0 },
 };
