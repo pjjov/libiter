@@ -177,7 +177,7 @@ int test_vector_clone(int seed, int rep) {
     return 0;
 }
 
-int test_vector_index(int seed, int repetition) {
+int test_vector_index(int seed, int rep) {
     int a[] = { 0, 1, 2 };
     vector(int) v = vector_from_array(a, 3, NULL);
     pf_assert_not_null(v);
@@ -192,7 +192,7 @@ int test_vector_index(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_insert_at(int seed, int repetition) {
+int test_vector_insert_at(int seed, int rep) {
     int a[] = { 1, 2, 3, 4, 5 };
     vector(int) v = vector_with_capacity(int, 5, NULL);
     pf_assert_not_null(v);
@@ -217,7 +217,7 @@ int test_vector_insert_at(int seed, int repetition) {
     return 0;
 }
 
-int test_vector_remove_at(int seed, int repetition) {
+int test_vector_remove_at(int seed, int rep) {
     int a[] = { 1, 2, 3, 4, 5 };
     vector(int) v = vector_from_array(a, 5, NULL);
     pf_assert_not_null(v);
@@ -236,6 +236,51 @@ int test_vector_remove_at(int seed, int repetition) {
     pf_assert(ITER_EINVAL == vector_remove_at((vector(int))NULL, &a[0], 2));
 
     vector_destroy(v);
+    return 0;
+}
+
+int test_vector_swap_remove(int seed, int rep) {
+    int a[] = { 1, 2, 3, 4, 5 };
+    vector(int) l = vector_from_array(a, 5, NULL);
+    pf_assert_not_null(l);
+
+    pf_assert_ok(vector_swap_remove(l, 0, 2));
+    pf_assert(vector_length(l) == 3);
+    pf_assert(*vector_get(l, 0) == 4);
+    pf_assert(*vector_get(l, 1) == 5);
+    pf_assert(*vector_get(l, 2) == 3);
+
+    pf_assert_ok(vector_swap_remove(l, 2, 1));
+    pf_assert(vector_length(l) == 2);
+    pf_assert(*vector_get(l, 0) == 4);
+    pf_assert(*vector_get(l, 1) == 5);
+
+    pf_assert(ITER_EINVAL == vector_swap_remove(l, 10, 10));
+    pf_assert(ITER_EINVAL == vector_swap_remove(l, 10, 0));
+    pf_assert(ITER_EINVAL == vector_swap_remove(l, 0, 10));
+
+    vector_destroy(l);
+    return 0;
+}
+
+int test_vector_swap(int seed, int rep) {
+    int a[] = { 1, 2, 3, 4, 5 };
+    vector(int) l = vector_from_array(a, 5, NULL);
+    pf_assert_not_null(l);
+
+    pf_assert_ok(vector_swap(l, 0, 4, 1));
+    pf_assert(*vector_get(l, 0) == 5);
+    pf_assert(*vector_get(l, 4) == 1);
+
+    pf_assert_ok(vector_swap(l, 1, 3, 1));
+    pf_assert(*vector_get(l, 1) == 4);
+    pf_assert(*vector_get(l, 3) == 2);
+
+    pf_assert(ITER_EINVAL == vector_swap(l, 3, 3, 1));
+    pf_assert(ITER_EINVAL == vector_swap(l, 0, 10, 1));
+    pf_assert(ITER_EINVAL == vector_swap(l, 20, 0, 1));
+
+    vector_destroy(l);
     return 0;
 }
 
@@ -275,6 +320,8 @@ pf_test suite_vector[] = {
     { test_vector_index, "/vector/index", 1 },
     { test_vector_insert_at, "/vector/insert_at", 1 },
     { test_vector_remove_at, "/vector/remove_at", 1 },
-    { test_vector_iter, "/vectir/iter", 1 },
+    { test_vector_swap_remove, "/vector/swap_remove", 1 },
+    { test_vector_swap, "/vector/swap", 1 },
+    { test_vector_iter, "/vector/iter", 1 },
     { 0 },
 };

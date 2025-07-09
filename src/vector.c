@@ -5,12 +5,14 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
-#define ITER_API
-#include <iter/error.h>
-#include <iter/vector.h>
-
 #include <allocator.h>
+#include <iter/error.h>
+#include <iter/iter.h>
 #include <string.h>
+
+#undef ITER_API
+#define ITER_API
+#include <iter/vector.h>
 
 extern allocator_t *libiter_allocator;
 
@@ -162,6 +164,34 @@ int vector__remove(vector_t *vec, size_t i, size_t size) {
     }
 
     vec->length -= size;
+    return ITER_OK;
+}
+
+int vector__swap_remove(vector_t *vec, size_t i, size_t size) {
+    if (!vec || i + size > vec->length)
+        return ITER_EINVAL;
+
+    if (i + size < vec->length) {
+        memcpy(
+            vector__slot(vec, i), vector__slot(vec, vec->length - size), size
+        );
+    }
+
+    vec->length -= size;
+    return ITER_OK;
+}
+
+int vector__swap(vector_t *vec, size_t i, size_t j, size_t size) {
+    if (!vec || i + size > vec->length || j + size > vec->length
+        || (i >= j && i < j + size) || (j >= i && j < i + size))
+        return ITER_EINVAL;
+
+    if (vector__reserve(vec, size))
+        return ITER_ENOMEM;
+
+    memcpy(vector__slot(vec, vec->length), vector__slot(vec, i), size);
+    memcpy(vector__slot(vec, i), vector__slot(vec, j), size);
+    memcpy(vector__slot(vec, j), vector__slot(vec, vec->length), size);
     return ITER_OK;
 }
 

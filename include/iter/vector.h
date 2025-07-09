@@ -474,6 +474,37 @@ ITER_API int vector__remove_at(vector_t *vec, void *at, size_t size) {
     return vector__remove(vec, vector__index(vec, at), size);
 }
 
+/** int vector_swap_remove(vector(T) vec, size_t i, size_t count);
+
+    Removes `count` items starting at index `i` by moving last `count` items
+    in their place. Possible error codes: ITER_EINVAL.
+
+    > While faster than `remove`, this function doesn't preserve item order.
+**/
+#define vector_swap_remove(m_vec, m_i, m_count) \
+    vector__swap_remove(                        \
+        vector_as_base(m_vec),                  \
+        vector_type_mul(m_vec, (m_i)),          \
+        vector_type_mul(m_vec, (m_count))       \
+    )
+
+int vector__swap_remove(vector_t *vec, size_t i, size_t size);
+
+/** int vector_swap(vector(T) vec, size_t i, size_t j, size_t count);
+
+    Swaps `count` items starting at index `i` with items at index `j`.
+    Possible error codes: ITER_EINVAL, ITER_ENOMEM.
+**/
+#define vector_swap(m_vec, m_i, m_j, m_count) \
+    vector__swap(                             \
+        vector_as_base(m_vec),                \
+        vector_type_mul(m_vec, (m_i)),        \
+        vector_type_mul(m_vec, (m_j)),        \
+        vector_type_mul(m_vec, (m_count))     \
+    )
+
+int vector__swap(vector_t *vec, size_t i, size_t j, size_t size);
+
 /** iter(T) vector_iter(vector(T) vec, iter_t *out);
 
     Initializes `out` as an iterator traversing items present in `vec`.
