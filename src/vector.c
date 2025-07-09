@@ -222,6 +222,22 @@ int vector__each(vector_t *vec, vector_each_fn *each, void *user, size_t size) {
     return ITER_OK;
 }
 
+int vector__filter(
+    vector_t *vec, vector_each_fn *filter, void *user, size_t size
+) {
+    if (!vec || !filter || size == 0)
+        return ITER_EINVAL;
+
+    for (size_t i = 0; i < vec->length; i += size) {
+        if (!filter(vector__slot(vec, i), user)) {
+            vector__remove(vec, i, size);
+            i -= size;
+        }
+    }
+
+    return ITER_OK;
+}
+
 iter_t *vector__iter(vector_t *vec, iter_t *out) {
     return vec ? iter__from_array(out, vec->items, vec->length) : NULL;
 }

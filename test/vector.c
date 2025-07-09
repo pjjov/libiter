@@ -324,6 +324,22 @@ int test_vector_each(int seed, int rep) {
     return 0;
 }
 
+int filter_even(void *item, void *user) { return (*(int *)item) % 2 == 0; }
+
+int test_vector_filter(int seed, int rep) {
+    int a[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    vector(int) v = vector_from_array(a, 10, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert_ok(vector_filter(v, filter_even, NULL));
+    pf_assert(vector_length(v) == 5);
+    for (int i = 0; i < 5; i++)
+        pf_assert(*vector_get(v, i) == i * 2);
+
+    vector_destroy(v);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
@@ -342,5 +358,6 @@ pf_test suite_vector[] = {
     { test_vector_swap, "/vector/swap", 1 },
     { test_vector_iter, "/vector/iter", 1 },
     { test_vector_each, "/vector/each", 1 },
+    { test_vector_filter, "/vector/filter", 1 },
     { 0 },
 };

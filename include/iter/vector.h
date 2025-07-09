@@ -524,6 +524,20 @@ int vector__swap(vector_t *vec, size_t i, size_t j, size_t size);
 typedef int(vector_each_fn)(void *item, void *user);
 int vector__each(vector_t *vec, vector_each_fn *each, void *user, size_t size);
 
+/** int vector_filter(vector(T) vec, vector_each *filter, void *user);
+
+    Removes each item in `vec` for which the `filter` callback returns a `0`.
+    Possible error codes: ITER_EINVAL.
+**/
+#define vector_filter(m_vec, m_filter, m_user)                               \
+    vector__filter(                                                          \
+        vector_as_base(m_vec), (m_filter), (m_user), vector_type_size(m_vec) \
+    )
+
+int vector__filter(
+    vector_t *vec, vector_each_fn *filter, void *user, size_t size
+);
+
 /** iter(T) vector_iter(vector(T) vec, iter_t *out);
 
     Initializes `out` as an iterator traversing items present in `vec`.
