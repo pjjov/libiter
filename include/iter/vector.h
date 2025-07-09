@@ -505,7 +505,7 @@ int vector__swap_remove(vector_t *vec, size_t i, size_t size);
 
 int vector__swap(vector_t *vec, size_t i, size_t j, size_t size);
 
-/** int vector_each(vector(T) vec, vector_each *each, void *user);
+/** int vector_each(vector(T) vec, vector_each_fn *each, void *user);
 
     Calls the `each` callback for each item present in `vec`,
     stopping if a non-zero value is returned by one of the calls.
@@ -524,7 +524,7 @@ int vector__swap(vector_t *vec, size_t i, size_t j, size_t size);
 typedef int(vector_each_fn)(void *item, void *user);
 int vector__each(vector_t *vec, vector_each_fn *each, void *user, size_t size);
 
-/** int vector_filter(vector(T) vec, vector_each *filter, void *user);
+/** int vector_filter(vector(T) vec, vector_each_fn *filter, void *user);
 
     Removes each item in `vec` for which the `filter` callback returns a `0`.
     Possible error codes: ITER_EINVAL.
@@ -536,6 +536,38 @@ int vector__each(vector_t *vec, vector_each_fn *each, void *user, size_t size);
 
 int vector__filter(
     vector_t *vec, vector_each_fn *filter, void *user, size_t size
+);
+
+/** int vector_map(vector(D) dst, vector(S), src, vector_map_fn *map, void *user);
+
+    Maps items of type `S` to items of type `D` using the `map` callback,
+    stopping if a non-zero value is returned by one of the calls.
+
+    ```c
+    typedef int(vector_map_fn)(void *dst, void *src, void *user);
+    ```
+
+    Possible error codes: ITER_EINVAL, ITER_EINTR, ITER_ENOMEM.
+**/
+#define vector_map(m_dst, m_src, m_map, m_user) \
+    vector__map(                                \
+        vector_as_base(m_dst),                  \
+        vector_as_base(m_src),                  \
+        (m_map),                                \
+        (m_user),                               \
+        vector_type_size(m_dst),                \
+        vector_type_size(m_src)                 \
+    )
+
+typedef int(vector_map_fn)(void *dst, void *src, void *user);
+
+int vector__map(
+    vector_t *dst,
+    vector_t *src,
+    vector_map_fn *map,
+    void *user,
+    size_t dsize,
+    size_t ssize
 );
 
 /** iter(T) vector_iter(vector(T) vec, iter_t *out);

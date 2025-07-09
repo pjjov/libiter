@@ -340,6 +340,29 @@ int test_vector_filter(int seed, int rep) {
     return 0;
 }
 
+int map_circle(void *out, void *item, void *user) {
+    *(double *)out = 2 * (*(int *)item) * (*(double *)user);
+    return 0;
+}
+
+int test_vector_map(int seed, int rep) {
+    int a[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+    vector(int) v1 = vector_from_array(a, 10, NULL);
+    pf_assert_not_null(v1);
+
+    double pi = 3.14;
+    vector(double) v2 = vector_create(double, NULL);
+    pf_assert_ok(vector_map(v2, v1, &map_circle, &pi));
+    pf_assert(vector_length(v2) == vector_length(v1));
+
+    for (int i = 0; i < 10; i++)
+        pf_assert(*vector_get(v2, i) == 2 * i * pi);
+
+    vector_destroy(v1);
+    vector_destroy(v2);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
@@ -359,5 +382,6 @@ pf_test suite_vector[] = {
     { test_vector_iter, "/vector/iter", 1 },
     { test_vector_each, "/vector/each", 1 },
     { test_vector_filter, "/vector/filter", 1 },
+    { test_vector_map, "/vector/map", 1 },
     { 0 },
 };

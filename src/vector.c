@@ -238,6 +238,32 @@ int vector__filter(
     return ITER_OK;
 }
 
+int vector__map(
+    vector_t *dst,
+    vector_t *src,
+    vector_map_fn *map,
+    void *user,
+    size_t dsize,
+    size_t ssize
+) {
+    if (!dst || !src || !map || dsize == 0 || ssize == 0)
+        return ITER_EINVAL;
+
+    size_t count = src->length / ssize;
+    if (vector__reserve(dst, count * dsize))
+        return ITER_ENOMEM;
+
+    for (size_t i = 0; i < count; i++) {
+        void *dslot = vector__slot(dst, i * dsize);
+        void *sslot = vector__slot(src, i * ssize);
+        if (map(dslot, sslot, user))
+            return ITER_EINTR;
+        dst->length += dsize;
+    }
+
+    return ITER_OK;
+}
+
 iter_t *vector__iter(vector_t *vec, iter_t *out) {
     return vec ? iter__from_array(out, vec->items, vec->length) : NULL;
 }
