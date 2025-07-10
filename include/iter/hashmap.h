@@ -280,6 +280,16 @@ int hashmap__fast_insert(hashmap_t *map, const void *key, const void *value);
 typedef int(hashmap_each_fn)(void *key, void *value, void *user);
 int hashmap__each(hashmap_t *map, hashmap_each_fn *each, void *user);
 
+/** int hashmap_filter(hashmap(T) map, hashmap_each_fn *filter, void *user);
+
+    Removes each item in `map` for which the `filter` callback returns a `0`.
+    Possible error codes: ITER_EINVAL.
+**/
+#define hashmap_filter(m_map, m_filter, m_user)                   \
+    hashmap__filter(hashmap_as_base(m_map), (m_filter), (m_user))
+
+int hashmap__filter(hashmap_t *map, hashmap_each_fn *filter, void *user);
+
 /** iter(V) hashmap_iter(hashmap(K, V) map, iter_t *out);
 
     Initializes `out` as an iterator traversing values present in `map`.

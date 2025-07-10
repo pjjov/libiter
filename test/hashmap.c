@@ -122,6 +122,34 @@ int test_hashmap_each(int seed, int rep) {
     return 0;
 }
 
+int filter_pair(void *key, void *item, void *user) {
+    return *(double *)item < *(double *)user;
+}
+
+int test_hashmap_filter(int seed, int rep) {
+    int keys[5] = { 1, 2, 3, 4, 5 };
+    double values[5] = { 1.1, 2.2, 3.3, 4.4, 5.5 };
+
+    hashmap(int, double) map = hashmap_create(int, double, NULL);
+    pf_assert_not_null(map);
+
+    for (size_t i = 0; i < 5; i++)
+        pf_assert_ok(hashmap_insert(map, &keys[i], &values[i]));
+
+    double threshold = 3;
+    pf_assert_ok(hashmap_filter(map, filter_pair, &threshold));
+    pf_assert_not_null(hashmap_get(map, &keys[0]));
+    pf_assert_not_null(hashmap_get(map, &keys[1]));
+    pf_assert(values[0] == *hashmap_get(map, &keys[0]));
+    pf_assert(values[1] == *hashmap_get(map, &keys[1]));
+    pf_assert_null(hashmap_get(map, &keys[2]));
+    pf_assert_null(hashmap_get(map, &keys[3]));
+    pf_assert_null(hashmap_get(map, &keys[4]));
+
+    hashmap_destroy(map);
+    return 0;
+}
+
 int test_hashmap_iter(int seed, int rep) {
     int keys[5] = { 1, 2, 3, 4, 5 };
     double values[5] = { 1.1, 2.2, 3.3, 4.4, 5.5 };
@@ -158,6 +186,7 @@ pf_test suite_hashmap[] = {
     { test_hashmap_get_set, "/hashmap/get_set", 1 },
     { test_hashmap_insert_remove, "/hashmap/insert_remove", 1 },
     { test_hashmap_each, "/hashmap/each", 1 },
+    { test_hashmap_filter, "/hashmap/filter", 1 },
     { test_hashmap_iter, "/hashmap/iter", 1 },
     { 0 },
 };
