@@ -34,6 +34,22 @@ int test_hashmap_create(int seed, int rep) {
     return 0;
 }
 
+int test_hashmap_from_arrays(int seed, int rep) {
+    int keys[5] = { 1, 2, 3, 4, 5 };
+    double values[5] = { 1.1, 2.2, 3.3, 4.4, 5.5 };
+
+    hashmap(int, double) map = hashmap_from_arrays(keys, values, 5, NULL);
+    pf_assert_not_null(map);
+
+    for (int i = 0; i < 5; i++) {
+        pf_assert_not_null(hashmap_get(map, &keys[i]));
+        pf_assert(values[i] == *hashmap_get(map, &keys[i]));
+    }
+
+    hashmap_destroy(map);
+    return 0;
+}
+
 int test_hashmap_reserve(int seed, int rep) {
     hashmap(int, double) map = hashmap_create(int, double, NULL);
     pf_assert_not_null(map);
@@ -182,6 +198,7 @@ int test_hashmap_iter(int seed, int rep) {
 pf_test suite_hashmap[] = {
     { test_hashmap_init, "/hashmap/init", 1 },
     { test_hashmap_create, "/hashmap/create", 1 },
+    { test_hashmap_from_arrays, "/hashmap/from_arrays", 1 },
     { test_hashmap_reserve, "/hashmap/reserve", 1 },
     { test_hashmap_get_set, "/hashmap/get_set", 1 },
     { test_hashmap_insert_remove, "/hashmap/insert_remove", 1 },

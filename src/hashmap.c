@@ -195,6 +195,29 @@ hashmap_t *hashmap__with_capacity(
     return out;
 }
 
+hashmap_t *hashmap__from_arrays(
+    const void *keys,
+    const void *values,
+    size_t count,
+    allocator_t *allocator,
+    const struct hashmap_layout *layout
+) {
+    if (!layout || layout->ksize == 0 || (!keys && count > 0))
+        return NULL;
+
+    hashmap_t *map = hashmap__with_capacity(count, allocator, layout);
+
+    if (map) {
+        for (int i = 0; i < count; i++) {
+            void *key = (void *)((uintptr_t)keys + i * layout->ksize);
+            void *value = (void *)((uintptr_t)values + i * layout->vsize);
+            hashmap__insert(map, key, value);
+        }
+    }
+
+    return map;
+}
+
 void hashmap__free(hashmap_t *map) {
     if (map) {
         size_t buckets = (1 << map->capacityLog2) / META_SIZE;

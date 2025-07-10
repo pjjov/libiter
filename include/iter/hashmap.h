@@ -132,6 +132,36 @@ hashmap_t *hashmap__with_capacity(
     size_t capacity, allocator_t *allocator, const struct hashmap_layout *layout
 );
 
+/** hashmap(K, V) hashmap_from_arrays(
+        K *keys,
+        V *values,
+        size_t count,
+        allocator_t *allocator
+    );
+
+    Creates a new instance of `hashmap(K, V)`, allocated with `allocator`,
+    and inserts `count` key-value pairs from arrays `keys` and `values`.
+    Returns `NULL` if out of memory or `sizeof(K) == 0`.
+
+    > If `allocator` is `NULL`, the default one will be used.
+**/
+#define hashmap_from_arrays(m_keys, m_values, m_count, m_allocator)         \
+    ((hashmap(typeof(*(m_keys)), typeof(*(m_values))))hashmap__from_arrays( \
+        (m_keys),                                                           \
+        (m_values),                                                         \
+        (m_count),                                                          \
+        (m_allocator),                                                      \
+        &hashmap_make_layout(typeof(*(m_keys)), typeof(*(m_values)))        \
+    ))
+
+hashmap_t *hashmap__from_arrays(
+    const void *keys,
+    const void *values,
+    size_t count,
+    allocator_t *allocator,
+    const struct hashmap_layout *layout
+);
+
 /** void hashmap_destroy(hashmap(K, V) map);
 
     Frees all resources used by `map`.
