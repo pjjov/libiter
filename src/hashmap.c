@@ -438,6 +438,31 @@ int hashmap__fast_insert(hashmap_t *map, const void *key, const void *value) {
     }
 }
 
+int hashmap__each(hashmap_t *map, hashmap_each_fn *each, void *user) {
+    if (!map || !each)
+        return ITER_EINVAL;
+
+    size_t count = 0;
+    for (size_t b = 0; b < bucket_count(map); b++) {
+        if (count >= map->count)
+            break;
+
+        union hashmeta *meta = get_meta(map, b);
+        for (uint8_t i = 0; i < META_SIZE; i++) {
+            if (meta->parts[i] == META_EMPTY || meta->parts[i] == META_TOMB)
+                continue;
+
+            count++;
+            void *key = get_key(map, meta, i);
+            void *value = get_value(map, meta, i);
+            if (each(key, value, user))
+                return ITER_EINTR;
+        }
+    }
+
+    return ITER_OK;
+}
+
 static int hashmap_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     if (!it || it == out)
         return ITER_EINVAL;

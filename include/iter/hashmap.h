@@ -263,6 +263,23 @@ void hashmap__clear(hashmap_t *map);
 
 int hashmap__fast_insert(hashmap_t *map, const void *key, const void *value);
 
+/** int hashmap_each(hashmap(T) map, hashmap_each_fn *each, void *user);
+
+    Calls the `each` callback for each item present in `map`,
+    stopping if a non-zero value is returned by one of the calls.
+
+    ```c
+    typedef int(hashmap_each_fn)(void *key, void *value, void *user);
+    ```
+
+    Possible error codes: ITER_EINVAL, ITER_EINTR.
+**/
+#define hashmap_each(m_map, m_each, m_user)                   \
+    hashmap__each(hashmap_as_base(m_map), (m_each), (m_user))
+
+typedef int(hashmap_each_fn)(void *key, void *value, void *user);
+int hashmap__each(hashmap_t *map, hashmap_each_fn *each, void *user);
+
 /** iter(V) hashmap_iter(hashmap(K, V) map, iter_t *out);
 
     Initializes `out` as an iterator traversing values present in `map`.
