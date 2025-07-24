@@ -26,6 +26,7 @@
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 
 extern allocator_t *libiter_allocator;
+extern hasher_fn *libiter_hasher;
 
 #if !defined(ITER_NO_SIMD) && defined(__SSE2__) && META_SIZE >= 16
     #define HASHMAP_SSE2
@@ -164,7 +165,7 @@ hashmap_t *hashmap__init(
     out->bucketSize += PF_ALIGN_PAD(out->bucketSize, alignof(union hashmeta));
 
     out->hash = NULL;
-    out->hasher = &hasher_fnv1a;
+    out->hasher = libiter_hasher;
     out->allocator = allocator;
     return out;
 }
@@ -237,7 +238,7 @@ int hashmap__use_hash(hashmap_t *map, hash_fn *hash, hasher_fn *hasher) {
         return ITER_EINVAL;
 
     map->hash = hash;
-    map->hasher = hasher ? hasher : &hasher_fnv1a;
+    map->hasher = hasher ? hasher : libiter_hasher;
     return ITER_OK;
 }
 
