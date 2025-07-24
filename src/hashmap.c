@@ -62,7 +62,7 @@ union hashmeta {
 
 static inline uint64_t meta_match(union hashmeta *meta, uint8_t part) {
     uint64_t out = 0;
-#ifdef __SSE2__
+#ifdef HASHMAP_SSE2
     __m128i tmp = _mm_set1_epi8(part);
     for (int i = 0; i < META_SIZE / 16; i++) {
         int result = _mm_movemask_epi8(_mm_cmpeq_epi8(meta->sse[i], tmp));
@@ -245,8 +245,8 @@ int grow_empty(hashmap_t *map, size_t capacity) {
     void *buffer = reallocate(
         map->allocator,
         map->buffer,
-        sizeof(union hashmeta) * capacity / META_SIZE,
-        sizeof(union hashmeta) * capacity * 2 / META_SIZE
+        sizeof(union hashmeta) * hashmap__capacity(map) / META_SIZE,
+        sizeof(union hashmeta) * capacity / META_SIZE
     );
 
     if (!buffer)
@@ -293,7 +293,7 @@ int hashmap__reserve(hashmap_t *map, size_t count) {
         return ITER_OK;
 
     size_t required = hashmap__capacity(map);
-    capacity = MAX(round_pow2(required), HASHMAP_MIN);
+    capacity = MAX(round_pow2(required) * 2, HASHMAP_MIN);
 
     if (map->count == 0)
         return grow_empty(map, capacity);
