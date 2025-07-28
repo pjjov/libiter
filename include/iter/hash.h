@@ -28,7 +28,7 @@
 #include <stdint.h>
 
 #ifndef ITER_API
-    #define ITER_API
+    #define ITER_API static inline
 #endif
 
 #ifndef ITER_HASH_TYPE
