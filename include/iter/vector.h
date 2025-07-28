@@ -12,7 +12,7 @@
 #include <iter/generic.h>
 #include <iter/iter.h>
 
-#include <allocator.h>
+typedef struct allocator_t allocator_t;
 #include <pf_overflow.h>
 #include <stddef.h>
 

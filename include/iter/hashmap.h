@@ -8,10 +8,11 @@
 #ifndef LIBITER_HASHMAP_H
 #define LIBITER_HASHMAP_H
 
-#include <allocator.h>
 #include <iter/generic.h>
 #include <iter/hash.h>
 #include <iter/iter.h>
+
+typedef struct allocator_t allocator_t;
 
 #ifndef ITER_API
     #define ITER_API static inline
