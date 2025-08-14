@@ -10,16 +10,14 @@
 
 extern pf_test suite_hashmap[];
 extern pf_test suite_iter[];
+extern pf_test suite_pool[];
 extern pf_test suite_vector[];
 
 static const pf_test *suites[] = {
-    suite_hashmap,
-    suite_iter,
-    suite_vector,
-    NULL,
+    suite_hashmap, suite_iter, suite_pool, suite_vector, NULL,
 };
 
-static const char *names[] = { "hashmap", "iter", "vector", NULL };
+static const char *names[] = { "hashmap", "iter", "pool", "vector", NULL };
 
 int main(int argc, char *argv[]) {
     if (argc > 2) {
