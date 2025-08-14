@@ -5,6 +5,7 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
+#include <allocator.h>
 #include <iter/error.h>
 #include <iter/hash.h>
 #include <iter/iter.h>
