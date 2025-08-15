@@ -151,14 +151,14 @@ void *pool__take(pool_t *pool);
 
 int pool__give(pool_t *pool, void *item);
 
-/** iter(T) pool_iter(pool(T) pool);
+/** iter(T) pool_iter(pool(T) pool, iter_t *out);
 
     Creates a iterator that returns items taken from the pool.
     > The returned iterator cannot be used after destroying it's pool.
 **/
-#define pool_iter(m_pool)                                       \
-    ((iter(pool_type(m_pool)))pool__iter(pool_as_base(m_pool)))
+#define pool_iter(m_pool, m_out)                                         \
+    ((iter(pool_type(m_pool)))pool__iter(pool_as_base(m_pool), (m_out)))
 
-iter_t *pool__iter(pool_t *pool);
+iter_t *pool__iter(pool_t *pool, iter_t *out);
 
 #endif

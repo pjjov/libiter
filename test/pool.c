@@ -66,10 +66,37 @@ int test_pool_give_take(int seed, int rep) {
     return 0;
 }
 
+int test_pool_iter(int seed, int repetition) {
+    pool(int) p = pool_create(int, NULL);
+    pf_assert_not_null(p);
+
+    for (int i = 0; i < 20; i++) {
+        int *item = pool_take(p);
+        pf_assert_not_null(item);
+        *item = i;
+        if (i % 2 == 0)
+            pf_assert_ok(pool_give(p, item));
+    }
+    pf_assert(10 == pool_count(p));
+
+    iter_t storage;
+    iter(int) it = pool_iter(p, &storage);
+    pf_assert_not_null(it);
+
+    int result;
+    for (int i = 1; i < 20; i += 2) {
+        pf_assert_ok(iter_next(it, &result));
+        pf_assert(result % 2 == 1);
+    }
+
+    pool_destroy(p);
+    return 0;
+}
+
 pf_test suite_pool[] = {
     { test_pool_init, "/pool/init", 1 },
     { test_pool_create, "/pool/create", 1 },
     { test_pool_give_take, "/pool/give_take", 1 },
-    { NULL, "/pool/iter", 0 },
+    { test_pool_iter, "/pool/iter", 1 },
     { 0 },
 };

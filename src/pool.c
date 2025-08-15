@@ -45,7 +45,7 @@ pool_t *pool__init(pool_t *out, allocator_t *alloc, size_t size, size_t align) {
     align = pf_pow2ceilsize(align);
 
     if (out) {
-        out->align = pf_pow2ceilsize(align); /* TODO: PF_MIN */
+        out->align = pf_pow2ceilsize(align);
         out->allocator = alloc;
         out->buffer = NULL;
         out->count = out->capacity = 0;
@@ -182,4 +182,60 @@ void *pool__take(pool_t *pool) {
     return NULL;
 }
 
-iter_t *pool__iter(pool_t *pool) { return NULL; }
+static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
+    if (!it || it == out)
+        return ITER_EINVAL;
+
+    pool_t *pool = it->container;
+    const struct bucket *bucket = it->bucket;
+    uintptr_t i = (uintptr_t)it->current;
+
+    if (size != pool->size)
+        return ITER_EINVAL;
+
+    if (out)
+        skip++;
+
+    uintptr_t set = i / BUCKET_SIZE;
+    uintptr_t bit = i % BUCKET_SIZE;
+
+    while (bucket) {
+        if (bucket->flags[set] & (1 << bit))
+            skip--;
+
+        if (skip == 0)
+            break;
+
+        if (++bit >= BUCKET_SIZE) {
+            set++;
+            bit = 0;
+        }
+
+        if (++i >= bucket->capacity) {
+            bucket = bucket->next;
+            i = 0;
+        }
+    }
+
+    i = set * BUCKET_SIZE + bit;
+    it->bucket = bucket;
+    it->current = (void *)i;
+
+    if (!bucket)
+        return ITER_ENODATA;
+
+    uintptr_t value = (uintptr_t)bucket->start + pool->size * i;
+    memcpy(out, (void *)value, pool->size);
+    return ITER_OK;
+}
+
+iter_t *pool__iter(pool_t *pool, iter_t *out) {
+    if (!out || !pool)
+        return NULL;
+
+    out->call = &pool_iter_fn;
+    out->container = pool;
+    out->bucket = pool->buffer;
+    out->current = (void *)(uintptr_t)0;
+    return out;
+}
