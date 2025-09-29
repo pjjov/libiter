@@ -317,6 +317,23 @@ ITER_API void vector__clear(vector_t *vec) {
         vec->length = 0;
 }
 
+/** int vector_set_length(vector(T) vec, size_t length);
+
+    Forces the length of `vec` to the value of `length`.
+    `length` must be less than or equal to `vec`'s capacity.
+    Possible error codes: `ITER_EINVAL`.
+**/
+#define vector_set_length(m_vec, m_length) \
+    vector__set_length(vector_as_base(m_vec), vector_type_mul(m_vec, m_length))
+
+ITER_API size_t vector__set_length(vector_t *vec, size_t length) {
+    if (!vec || length > vec->capacity)
+        return ITER_EINVAL;
+
+    vec->length = length;
+    return ITER_OK;
+}
+
 /** int vector_resize(vector(T) vec, size_t capacity);
 
     Resizes vector's buffer to fit `capacity` items. If the length of
@@ -377,7 +394,7 @@ int vector__insert(vector_t *vec, const void *items, size_t i, size_t size);
     Possible error codes: ITER_EINVAL, ITER_ENOMEM.
 **/
 #define vector_push(m_vec, m_items, m_count) \
-    vector__insert(                          \
+    vector__push(                            \
         vector_as_base(m_vec),               \
         vector_check_type(m_vec, m_items),   \
         vector_type_mul(m_vec, m_count)      \
