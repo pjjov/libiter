@@ -182,6 +182,42 @@ void *pool__take(pool_t *pool) {
     return NULL;
 }
 
+size_t pool__to_index(pool_t *pool, void *item) {
+    if (!pool || !item)
+        return 0;
+
+    struct bucket *bucket = pool->buffer;
+    size_t index = 0;
+
+    for (; bucket; bucket = bucket->next) {
+        if (bucket->start <= item && bucket->end >= item) {
+            index += (item - bucket->start) / pool->size;
+            break;
+        }
+
+        index += bucket->capacity;
+    }
+
+    return index;
+}
+
+void *pool__from_index(pool_t *pool, size_t index) {
+    if (!pool || index >= pool->capacity)
+        return NULL;
+
+    struct bucket *bucket = pool->buffer;
+    for (; bucket; bucket = bucket->next) {
+        if (index < bucket->capacity) {
+            size_t offset = index * pool->size;
+            return (void *)((uintptr_t)bucket->start + offset);
+        }
+
+        index -= bucket->capacity;
+    }
+
+    return NULL;
+}
+
 static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     if (!it || it == out)
         return ITER_EINVAL;

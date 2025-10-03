@@ -151,6 +151,26 @@ void *pool__take(pool_t *pool);
 
 int pool__give(pool_t *pool, void *item);
 
+/** size_t pool_to_index(pool(T) pool, T *item)
+
+    Returns an unique numeric index for `item` or 0 if either is `NULL`.
+    Returned index will always be smaller than pool's capacity.
+**/
+#define pool_to_index(m_pool, m_item)                                     \
+    pool__to_index(pool_as_base(m_pool), pool_check_type(m_pool, m_item))
+
+size_t pool__to_index(pool_t *pool, void *item);
+
+/** T *pool_from_index(pool(T) pool, size_t index)
+
+    Returns the pointer to the item located at `index`,
+    or `NULL` if it's larger than pool's capacity.
+**/
+#define pool_from_index(m_pool, m_index)                                       \
+    ((pool_type_ptr(m_pool))pool__from_index(pool_as_base(m_pool), (m_index)))
+
+void *pool__from_index(pool_t *pool, size_t index);
+
 /** iter(T) pool_iter(pool(T) pool, iter_t *out);
 
     Creates a iterator that returns items taken from the pool.
