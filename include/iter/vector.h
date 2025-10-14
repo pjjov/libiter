@@ -587,6 +587,29 @@ int vector__map(
     size_t ssize
 );
 
+/** T *vector_find(vector(T) vec, const T *item, vector_compare_fn *cmp);
+
+    Finds `item` inside `vec` by comparing items with `cmp`.
+    If the `vector_compare_fn` callback is `NULL` it will default to `memcmp`.
+
+    ```c
+    typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t s);
+    ```
+**/
+#define vector_find(m_vec, m_item, m_cmp) \
+    vector__find(                         \
+        vector_as_base(m_vec),            \
+        vector_check_type(m_vec, m_item), \
+        vector_type_size(m_vec),          \
+        (m_cmp)                           \
+    )
+
+typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t size);
+
+void *vector__find(
+    vector_t *vec, const void *item, size_t size, vector_compare_fn *cmp
+);
+
 /** iter(T) vector_iter(vector(T) vec, iter_t *out);
 
     Initializes `out` as an iterator traversing items present in `vec`.

@@ -264,6 +264,26 @@ int vector__map(
     return ITER_OK;
 }
 
+void *vector__find(
+    vector_t *vec, const void *item, size_t size, vector_compare_fn *cmp
+) {
+    if (!vec || !item || size == 0)
+        return NULL;
+
+    if (!cmp)
+        cmp = memcmp;
+
+    size_t count = vec->length / size;
+
+    for (size_t i = 0; i < count; i++) {
+        void *out = vector__slot(vec, i * size);
+        if (0 == cmp(item, out, size))
+            return out;
+    }
+
+    return NULL;
+}
+
 iter_t *vector__iter(vector_t *vec, iter_t *out) {
     return vec ? iter__from_array(out, vec->items, vec->length) : NULL;
 }

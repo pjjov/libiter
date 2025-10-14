@@ -363,6 +363,24 @@ int test_vector_map(int seed, int rep) {
     return 0;
 }
 
+int test_vector_find(int seed, int rep) {
+    int a[] = { 0, 1, 2, 2, 1 };
+    vector(int) v = vector_from_array(a, 10, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert(vector_find(v, &a[0], NULL) == vector_get(v, 0));
+    pf_assert(vector_find(v, &a[1], NULL) == vector_get(v, 1));
+    pf_assert(vector_find(v, &a[2], NULL) == vector_get(v, 2));
+    pf_assert(vector_find(v, &a[3], NULL) == vector_get(v, 2));
+    pf_assert(vector_find(v, &a[4], NULL) == vector_get(v, 1));
+
+    int invalid = -1;
+    pf_assert_null(vector_find(v, &invalid, NULL));
+    pf_assert_null(vector_find(v, (int *)NULL, NULL));
+    vector_destroy(v);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
@@ -383,5 +401,6 @@ pf_test suite_vector[] = {
     { test_vector_each, "/vector/each", 1 },
     { test_vector_filter, "/vector/filter", 1 },
     { test_vector_map, "/vector/map", 1 },
+    { test_vector_find, "/vector/find", 1 },
     { 0 },
 };
