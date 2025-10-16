@@ -13,7 +13,6 @@
 #include <iter/iter.h>
 
 typedef struct allocator_t allocator_t;
-#include <pf_overflow.h>
 #include <stddef.h>
 
 #ifndef ITER_API
@@ -57,12 +56,22 @@ typedef struct vector_t {
 #define vector_type(m_vec) generic_value_type(vector_t, m_vec)
 #define vector_type_ptr(m_vec) generic_value_ptr(vector_t, m_vec)
 #define vector_type_size(m_vec) generic_value_size(vector_t, m_vec)
-#define vector_type_mul(m_vec, m_i)                               \
-    pf_checked_umulsize(generic_value_size(vector_t, m_vec), m_i)
+#define vector_type_mul(m_vec, m_i)                                    \
+    vector__checked_umulsize(generic_value_size(vector_t, m_vec), m_i)
 
 #define vector_as_base(m_vec) generic_check_container(vector_t, size_t, m_vec)
 #define vector_check_type(m_vec, m_item)         \
     generic_check_value(vector_t, m_vec, m_item)
+
+#ifndef VECTOR_ALLOW_OVERFLOW
+    #define PF_OVERFLOW_SKIP_DEFAULT
+    #include <pf_overflow.h>
+    #undef PF_OVERFLOW_SKIP_DEFAULT
+
+PF_IMPL_OVERFLOW(PF_OVERFLOW_SIZE, size_t, u, size, vector_)
+#else
+    #define vector__checked_umulsize(m_l, m_r) ((m_l) * (m_r))
+#endif
 
 /** vector(T) vector_init(type T, vector_t *vec, allocator_t *allocator);
 
