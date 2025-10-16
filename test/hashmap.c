@@ -7,6 +7,7 @@
 
 #include <iter/error.h>
 #include <iter/hashmap.h>
+#include <iter/iter.h>
 #include <pf_assert.h>
 #include <pf_test.h>
 #include <stdint.h>

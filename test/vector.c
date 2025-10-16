@@ -5,6 +5,7 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
+#include <iter/iter.h>
 #include <iter/vector.h>
 #include <pf_assert.h>
 #include <pf_test.h>

@@ -10,7 +10,6 @@
 
 #include <iter/error.h>
 #include <iter/generic.h>
-#include <iter/iter.h>
 
 typedef struct allocator_t allocator_t;
 #include <stddef.h>

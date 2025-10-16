@@ -17,6 +17,7 @@
     limitations under the License.
 */
 
+#include <iter/iter.h>
 #include <iter/pool.h>
 
 #include <allocator.h>

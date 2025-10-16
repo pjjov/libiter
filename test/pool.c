@@ -20,6 +20,7 @@
 #include <pf_assert.h>
 #include <pf_test.h>
 
+#include <iter/iter.h>
 #include <iter/pool.h>
 
 int test_pool_init(int seed, int rep) {

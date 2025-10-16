@@ -1,9 +1,17 @@
+/*  libiter - Generic container and iterator library for C.
+
+    Copyright 2025 Predrag Jovanović
+    SPDX-FileCopyrightText: 2025 Predrag Jovanović
+    SPDX-License-Identifier: Apache-2.0
+*/
+
 #ifndef ITER_POOL_H
 #define ITER_POOL_H
 
-typedef struct allocator_t allocator_t;
 #include <iter/generic.h>
-#include <iter/iter.h>
+
+typedef struct allocator_t allocator_t;
+#include <stddef.h>
 
 #ifndef ITER_API
     #define ITER_API static inline
