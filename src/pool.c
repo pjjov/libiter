@@ -43,8 +43,6 @@ pool_t *pool__init(pool_t *out, allocator_t *alloc, size_t size, size_t align) {
     if (!alloc)
         alloc = libiter_allocator;
 
-    align = pf_pow2ceilsize(align);
-
     if (out) {
         out->align = pf_pow2ceilsize(align);
         out->allocator = alloc;
@@ -144,7 +142,7 @@ int pool__give(pool_t *pool, void *item) {
         return ITER_ENOENT;
 
     size_t index = ((uintptr_t)item - (uintptr_t)bucket->start) / pool->size;
-    size_t mask = 1 << (index % BUCKET_SIZE);
+    size_t mask = (size_t)1 << (index % BUCKET_SIZE);
 
     if (!(bucket->flags[index / BUCKET_SIZE] & mask))
         return ITER_ENOENT;
@@ -168,9 +166,9 @@ void *pool__take(pool_t *pool) {
             break;
 
     for (size_t i = bucket->empty; i < bucket->capacity / BUCKET_SIZE; i++) {
-        if (bucket->flags[i] != ~0) {
+        if (bucket->flags[i] != ~(size_t)0) {
             int bit = pf_ctzsize(bucket->flags[i]) - 1;
-            bucket->flags[i] |= 1 << bit;
+            bucket->flags[i] |= (size_t)1 << bit;
             bucket->count++;
             pool->count++;
 
@@ -235,13 +233,13 @@ static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
 
     uintptr_t set = i / BUCKET_SIZE;
     uintptr_t bit = i % BUCKET_SIZE;
+    uintptr_t value;
 
-    while (bucket) {
-        if (bucket->flags[set] & (1 << bit))
+    while (bucket && skip > 0) {
+        if (bucket->flags[set] & ((size_t)1 << bit)) {
+            value = (uintptr_t)bucket->start + pool->size * i;
             skip--;
-
-        if (skip == 0)
-            break;
+        }
 
         if (++bit >= BUCKET_SIZE) {
             set++;
@@ -250,7 +248,7 @@ static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
 
         if (++i >= bucket->capacity) {
             bucket = bucket->next;
-            i = 0;
+            i = set = bit = 0;
         }
     }
 
@@ -258,10 +256,9 @@ static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     it->bucket = bucket;
     it->current = (void *)i;
 
-    if (!bucket)
+    if (skip > 0)
         return ITER_ENODATA;
 
-    uintptr_t value = (uintptr_t)bucket->start + pool->size * i;
     memcpy(out, (void *)value, pool->size);
     return ITER_OK;
 }

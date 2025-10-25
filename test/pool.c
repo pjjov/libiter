@@ -118,11 +118,26 @@ int test_pool_iter(int seed, int repetition) {
     return 0;
 }
 
+int test_pool_resize(int seed, int rep) {
+    pool(void *) p = pool_create(void *, NULL);
+    pf_assert_not_null(p);
+
+    for (int i = 0; i < 2048; i++) {
+        void **item = pool_take(p);
+        pf_assert_not_null(item);
+    }
+
+    pf_assert(2048 == pool_count(p));
+    pool_destroy(p);
+    return 0;
+}
+
 pf_test suite_pool[] = {
     { test_pool_init, "/pool/init", 1 },
     { test_pool_create, "/pool/create", 1 },
     { test_pool_give_take, "/pool/give_take", 1 },
     { test_pool_index, "/pool/index", 1 },
     { test_pool_iter, "/pool/iter", 1 },
+    { test_pool_resize, "/pool/resize", 1 },
     { 0 },
 };
