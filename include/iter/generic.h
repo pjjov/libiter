@@ -16,8 +16,8 @@
     The macros themselves rely on heavily on the polyfill library.
 **/
 
-#define generic_container(m_cntr, m_key, m_value)         \
-    typeof(m_value * (**)(m_cntr * container, m_key key))
+#define generic_container(m_cntr, m_key, m_value)           \
+    typeof(m_value * (**)(m_cntr * container, m_key * key))
 
 #define generic_value_type(m_type, m_cntr) typeof(*(*(m_cntr))((m_type *)0, 0))
 #define generic_value_ptr(m_type, m_cntr) typeof((*(m_cntr))((m_type *)0, 0))
