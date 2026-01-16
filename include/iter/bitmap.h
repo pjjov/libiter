@@ -13,8 +13,6 @@
 typedef struct allocator_t allocator_t;
 
 enum {
-    BITMAP_FALSE = 0,
-    BITMAP_TRUE = 1,
     BITMAP_CLEAR = 0,
     BITMAP_SET = 1,
 };
@@ -33,5 +31,9 @@ void bitmap_free(bitmap_t *map);
 
 int bitmap_reserve(bitmap_t *map, size_t count);
 int bitmap_resize(bitmap_t *map, size_t capacity);
+
+int bitmap_get(bitmap_t *map, size_t i);
+int bitmap_set(bitmap_t *map, size_t i, int value);
+int bitmap_toggle(bitmap_t *map, size_t i);
 
 #endif
