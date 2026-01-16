@@ -5,6 +5,7 @@
 project('libiter', 'c')
 
 src = [
+    'src/bitmap.c',
     'src/global.c',
     'src/hashmap.c',
     'src/iter.c',
