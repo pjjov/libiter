@@ -19,13 +19,18 @@ enum {
 
 typedef struct bitmap_t {
     size_t length;
-    size_t capacity;
     void *buffer;
     allocator_t *allocator;
+
+    union {
+        size_t capacity;
+        size_t offset;
+    } as;
 } bitmap_t;
 
 bitmap_t *bitmap_init(bitmap_t *out, allocator_t *allocator);
 bitmap_t *bitmap_create(allocator_t *allocator);
+int bitmap_slice(bitmap_t *dst, const bitmap_t *src, size_t from, size_t to);
 void bitmap_destroy(bitmap_t *map);
 void bitmap_free(bitmap_t *map);
 

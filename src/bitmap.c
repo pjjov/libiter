@@ -35,7 +35,7 @@ bitmap_t *bitmap_init(bitmap_t *out, allocator_t *allocator) {
         out->allocator = allocator;
         out->buffer = NULL;
         out->length = 0;
-        out->capacity = 0;
+        out->as.capacity = 0;
     }
 
     return out;
@@ -49,22 +49,43 @@ bitmap_t *bitmap_create(allocator_t *allocator) {
     return bitmap_init(map, allocator);
 }
 
+int bitmap_slice(bitmap_t *dst, const bitmap_t *src, size_t from, size_t to) {
+    if (!dst || !src)
+        return ITER_EINVAL;
+
+    if (to > src->length)
+        to = src->length;
+    if (from > to)
+        from = to;
+
+    dst->buffer = src->buffer;
+    dst->length = to - from;
+    dst->as.offset = from;
+    dst->allocator = NULL;
+    return ITER_OK;
+}
+
 void bitmap_destroy(bitmap_t *map) {
     bitmap_free(map);
     deallocate(map->allocator, map, sizeof(*map));
 }
 
-void bitmap_free(bitmap_t *map) { }
+void bitmap_free(bitmap_t *map) {
+    if (!map || !map->allocator)
+        return;
+
+    deallocate(map->allocator, map->buffer, map->as.capacity / BITMAP_INT_BITS);
+}
 
 int bitmap_resize(bitmap_t *map, size_t capacity) {
-    if (!map || capacity == 0)
+    if (!map || capacity == 0 || !map->allocator)
         return ITER_EINVAL;
 
     capacity = PF_ALIGN_UP(capacity, BITMAP_INT_BITS);
     void *buf = reallocate(
         map->allocator,
         map->buffer,
-        map->capacity / BITMAP_INT_BITS,
+        map->as.capacity / BITMAP_INT_BITS,
         capacity / BITMAP_INT_BITS
     );
 
@@ -72,52 +93,69 @@ int bitmap_resize(bitmap_t *map, size_t capacity) {
         return ITER_ENOMEM;
 
     map->buffer = buf;
-    map->capacity = capacity;
+    map->as.capacity = capacity;
     if (map->length > capacity)
         map->length = capacity;
     return ITER_OK;
 }
 
 int bitmap_reserve(bitmap_t *map, size_t count) {
-    if (!map || count == 0)
+    if (!map || count == 0 || !map->allocator)
         return ITER_EINVAL;
 
-    if (map->length + count <= map->capacity)
+    if (map->length + count <= map->as.capacity)
         return ITER_OK;
 
     return bitmap_resize(map, BITMAP_GROWTH(map->length, count));
 }
 
 static bitmap_int_t *bitmap_slot(bitmap_t *map, size_t *i) {
-    bitmap_int_t *buf = map->buffer;
-    bitmap_int_t *slot = &buf[(*i) / BITMAP_INT_BITS];
+    size_t offset = *i;
 
-    *i = (*i) % BITMAP_INT_BITS;
+    if (!map->allocator)
+        offset += map->as.offset;
+
+    if (offset >= map->length)
+        return NULL;
+
+    bitmap_int_t *buf = map->buffer;
+    bitmap_int_t *slot = &buf[offset / BITMAP_INT_BITS];
+
+    *i = offset % BITMAP_INT_BITS;
     return slot;
 }
 
 int bitmap_get(bitmap_t *map, size_t i) {
-    if (!map || i >= map->length)
+    if (!map)
         return ITER_EINVAL;
 
-    bitmap_int_t *slot = bitmap_slot(map, &i);
+    bitmap_int_t *slot;
+    if (!(slot = bitmap_slot(map, &i)))
+        return ITER_EINVAL;
+
     return *slot & BIT(1, i);
 }
 
 int bitmap_set(bitmap_t *map, size_t i, int value) {
-    if (!map || i >= map->length)
+    if (!map)
         return ITER_EINVAL;
 
-    bitmap_int_t *slot = bitmap_slot(map, &i);
+    bitmap_int_t *slot;
+    if (!(slot = bitmap_slot(map, &i)))
+        return ITER_EINVAL;
+
     *slot |= BIT(value != 0, i);
     return ITER_OK;
 }
 
 int bitmap_toggle(bitmap_t *map, size_t i) {
-    if (!map || i >= map->length)
+    if (!map)
         return ITER_EINVAL;
 
-    bitmap_int_t *slot = bitmap_slot(map, &i);
+    bitmap_int_t *slot;
+    if (!(slot = bitmap_slot(map, &i)))
+        return ITER_EINVAL;
+
     *slot ^= BIT(1, i);
     return ITER_OK;
 }
