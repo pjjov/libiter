@@ -45,5 +45,9 @@ int bitmap_inv(bitmap_t *map);
 int bitmap_or(bitmap_t *dst, bitmap_t *src);
 int bitmap_and(bitmap_t *dst, bitmap_t *src);
 int bitmap_xor(bitmap_t *dst, bitmap_t *src);
+int bitmap_shr(bitmap_t *map, size_t count);
+int bitmap_shl(bitmap_t *map, size_t count);
+int bitmap_rotr(bitmap_t *map, int count);
+int bitmap_rotl(bitmap_t *map, int count);
 
 #endif
