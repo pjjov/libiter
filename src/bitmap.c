@@ -26,6 +26,10 @@ typedef BITMAP_INT bitmap_int_t;
 
 #define BITMAP_GROWTH(old, count) (2 * ((old) + (count)))
 #define BIT(value, offset) (((bitmap_int_t)value) << (offset))
+#define MASK(count) ((((bitmap_int_t)1) << (count)) - 1)
+#define SLOT_COUNT(length)                                   \
+    (PF_ALIGN_UP(length, BITMAP_INT_BITS) / BITMAP_INT_BITS)
+#define INCREMENT(i) PF_ALIGN_UP(i + 1, BITMAP_INT_BITS)
 
 bitmap_t *bitmap_init(bitmap_t *out, allocator_t *allocator) {
     if (!allocator)
@@ -109,19 +113,33 @@ int bitmap_reserve(bitmap_t *map, size_t count) {
     return bitmap_resize(map, BITMAP_GROWTH(map->length, count));
 }
 
-static bitmap_int_t *bitmap_slot(bitmap_t *map, size_t *i) {
-    size_t offset = *i;
+static bitmap_int_t bitmap_mask(size_t i, size_t len) {
+    if (i >= BITMAP_INT_BITS)
+        return 0;
 
+    if (i + len > BITMAP_INT_BITS)
+        len = BITMAP_INT_BITS - i;
+
+    if (len == BITMAP_INT_BITS)
+        return ~0;
+
+    return ((1ULL << len) - 1ULL) << i;
+}
+
+static bitmap_int_t *bitmap_slot(bitmap_t *map, size_t i, bitmap_int_t *mask) {
     if (!map->allocator)
-        offset += map->as.offset;
+        i += map->as.offset;
 
-    if (offset >= map->length)
+    if (i >= map->length)
         return NULL;
 
     bitmap_int_t *buf = map->buffer;
-    bitmap_int_t *slot = &buf[offset / BITMAP_INT_BITS];
+    bitmap_int_t *slot = &buf[i / BITMAP_INT_BITS];
 
-    *i = offset % BITMAP_INT_BITS;
+    if (mask) {
+        size_t j = i - i % BITMAP_INT_BITS;
+        *mask = bitmap_mask(i - j, map->length - j);
+    }
     return slot;
 }
 
@@ -130,7 +148,7 @@ int bitmap_get(bitmap_t *map, size_t i) {
         return ITER_EINVAL;
 
     bitmap_int_t *slot;
-    if (!(slot = bitmap_slot(map, &i)))
+    if (!(slot = bitmap_slot(map, i, NULL)))
         return ITER_EINVAL;
 
     return *slot & BIT(1, i);
@@ -141,7 +159,7 @@ int bitmap_set(bitmap_t *map, size_t i, int value) {
         return ITER_EINVAL;
 
     bitmap_int_t *slot;
-    if (!(slot = bitmap_slot(map, &i)))
+    if (!(slot = bitmap_slot(map, i, NULL)))
         return ITER_EINVAL;
 
     *slot |= BIT(value != 0, i);
@@ -153,9 +171,47 @@ int bitmap_toggle(bitmap_t *map, size_t i) {
         return ITER_EINVAL;
 
     bitmap_int_t *slot;
-    if (!(slot = bitmap_slot(map, &i)))
+    if (!(slot = bitmap_slot(map, i, NULL)))
         return ITER_EINVAL;
 
     *slot ^= BIT(1, i);
     return ITER_OK;
 }
+
+int bitmap_inv(bitmap_t *map) {
+    if (!map)
+        return ITER_EINVAL;
+
+    bitmap_int_t *buf, mask;
+
+    for (size_t i = 0; i < map->length; i = INCREMENT(i)) {
+        buf = bitmap_slot(map, i, &mask);
+        *buf = (~(*buf) & mask) | (*buf & ~mask);
+    }
+
+    return ITER_OK;
+}
+
+#define BITMAP_BIN_OP(m_name, m_op)                          \
+    int m_name(bitmap_t *dst, bitmap_t *src) {               \
+        if (!dst || !src || dst->length != src->length)      \
+            return ITER_EINVAL;                              \
+                                                             \
+        /* Binary operations are not supported for slices */ \
+        if (!dst->allocator || !src->allocator)              \
+            return ITER_ENOSYS;                              \
+                                                             \
+        bitmap_int_t *a, *b, mask;                           \
+                                                             \
+        for (size_t i = 0; i < dst->length; INCREMENT(i)) {  \
+            a = bitmap_slot(src, i, &mask);                  \
+            b = bitmap_slot(dst, i, NULL);                   \
+            *b = ((*b m_op * a) & mask) | (*b & ~mask);      \
+        }                                                    \
+                                                             \
+        return ITER_OK;                                      \
+    }
+
+BITMAP_BIN_OP(bitmap_or, |=);
+BITMAP_BIN_OP(bitmap_and, &=);
+BITMAP_BIN_OP(bitmap_xor, ^=);

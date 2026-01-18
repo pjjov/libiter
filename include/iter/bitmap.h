@@ -41,4 +41,9 @@ int bitmap_get(bitmap_t *map, size_t i);
 int bitmap_set(bitmap_t *map, size_t i, int value);
 int bitmap_toggle(bitmap_t *map, size_t i);
 
+int bitmap_inv(bitmap_t *map);
+int bitmap_or(bitmap_t *dst, bitmap_t *src);
+int bitmap_and(bitmap_t *dst, bitmap_t *src);
+int bitmap_xor(bitmap_t *dst, bitmap_t *src);
+
 #endif
