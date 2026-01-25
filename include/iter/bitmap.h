@@ -50,4 +50,16 @@ int bitmap_shl(bitmap_t *map, size_t count);
 int bitmap_rotr(bitmap_t *map, int count);
 int bitmap_rotl(bitmap_t *map, int count);
 
+size_t bitmap_ctz(bitmap_t *map);
+size_t bitmap_clz(bitmap_t *map);
+size_t bitmap_cto(bitmap_t *map);
+size_t bitmap_clo(bitmap_t *map);
+size_t bitmap_ftz(bitmap_t *map);
+size_t bitmap_flz(bitmap_t *map);
+size_t bitmap_fto(bitmap_t *map);
+size_t bitmap_flo(bitmap_t *map);
+size_t bitmap_popcount(bitmap_t *map);
+size_t bitmap_zerocount(bitmap_t *map);
+int bitmap_parity(bitmap_t *map);
+
 #endif
