@@ -8,6 +8,10 @@
 #ifndef ITER_BITMAP_H
 #define ITER_BITMAP_H
 
+#ifndef ITER_API
+    #define ITER_API static inline
+#endif
+
 #include <stddef.h>
 
 typedef struct allocator_t allocator_t;
@@ -34,8 +38,27 @@ int bitmap_slice(bitmap_t *dst, const bitmap_t *src, size_t from, size_t to);
 void bitmap_destroy(bitmap_t *map);
 void bitmap_free(bitmap_t *map);
 
+ITER_API size_t bitmap_length(bitmap_t *map) { return map ? map->length : 0; }
+
+ITER_API size_t bitmap_capacity(bitmap_t *map) {
+    if (!map)
+        return 0;
+
+    return map->allocator ? map->as.capacity : map->length;
+}
+
+ITER_API size_t bitmap_offset(bitmap_t *map) {
+    if (!map || map->allocator)
+        return 0;
+    return map->as.offset;
+}
+
+ITER_API allocator_t *bitmap_allocator(bitmap_t *map) {
+    return map ? map->allocator : NULL;
+}
+
 int bitmap_reserve(bitmap_t *map, size_t count);
-int bitmap_resize(bitmap_t *map, size_t capacity);
+int bitmap_resize(bitmap_t *map, size_t length);
 
 int bitmap_get(bitmap_t *map, size_t i);
 int bitmap_set(bitmap_t *map, size_t i, int value);

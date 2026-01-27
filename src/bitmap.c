@@ -85,8 +85,8 @@ void bitmap_free(bitmap_t *map) {
     deallocate(map->allocator, map->buffer, map->as.capacity / BITMAP_INT_BITS);
 }
 
-int bitmap_resize(bitmap_t *map, size_t capacity) {
-    if (!map || capacity == 0 || !map->allocator)
+static int resize_buffer(bitmap_t *map, size_t capacity) {
+    if (!map->allocator)
         return ITER_EINVAL;
 
     capacity = PF_ALIGN_UP(capacity, BITMAP_INT_BITS);
@@ -107,6 +107,20 @@ int bitmap_resize(bitmap_t *map, size_t capacity) {
     return ITER_OK;
 }
 
+int bitmap_resize(bitmap_t *map, size_t length) {
+    if (!map || length == 0 || !map->allocator)
+        return ITER_EINVAL;
+
+    if (length > map->as.capacity) {
+        int result = resize_buffer(map, length);
+        if (result != ITER_OK)
+            return result;
+    }
+
+    map->length = length;
+    return ITER_OK;
+}
+
 int bitmap_reserve(bitmap_t *map, size_t count) {
     if (!map || count == 0 || !map->allocator)
         return ITER_EINVAL;
@@ -114,7 +128,7 @@ int bitmap_reserve(bitmap_t *map, size_t count) {
     if (map->length + count <= map->as.capacity)
         return ITER_OK;
 
-    return bitmap_resize(map, BITMAP_GROWTH(map->length, count));
+    return resize_buffer(map, BITMAP_GROWTH(map->length, count));
 }
 
 static bitmap_int_t bitmap_mask(size_t i, size_t len) {
