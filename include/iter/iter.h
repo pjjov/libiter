@@ -10,7 +10,6 @@
 
 #include <iter/error.h>
 #include <iter/generic.h>
-#include <pf_overflow.h>
 #include <stddef.h>
 
 #ifndef ITER_API
@@ -59,6 +58,16 @@ struct iter_t {
 #define iter_as_base(m_iter) generic_check_container(iter_t, size_t, m_iter)
 #define iter_check_type(m_iter, m_item)         \
     generic_check_value(iter_t, m_iter, m_item)
+
+#ifndef VECTOR_ALLOW_OVERFLOW
+    #define PF_OVERFLOW_SKIP_DEFAULT
+    #include <pf_overflow.h>
+    #undef PF_OVERFLOW_SKIP_DEFAULT
+
+PF_IMPL_OVERFLOW(PF_OVERFLOW_SIZE, size_t, u, size, iter_)
+#else
+    #define iter__checked_umulsize(m_l, m_r) ((m_l) * (m_r))
+#endif
 
 ITER_API int iter__call(iter_t *it, void *out, size_t size, size_t skip) {
     return it && it->call ? it->call(it, out, size, skip) : ITER_EINVAL;
@@ -128,11 +137,11 @@ size_t iter__to_array(iter_t *it, void *out, size_t length, size_t stride);
 
     Creates an iterator that traverses the items of the provided array `items`.
 **/
-#define iter_from_array(m_out, m_items, m_length)           \
-    ((iter(typeof(*(m_items))))iter__from_array(            \
-        (m_out),                                            \
-        (m_items),                                          \
-        pf_checked_umulsize((m_length), sizeof(*(m_items))) \
+#define iter_from_array(m_out, m_items, m_length)              \
+    ((iter(typeof(*(m_items))))iter__from_array(               \
+        (m_out),                                               \
+        (m_items),                                             \
+        iter__checked_umulsize((m_length), sizeof(*(m_items))) \
     ))
 
 iter_t *iter__from_array(iter_t *out, const void *items, size_t length);

@@ -109,9 +109,9 @@ vector_t *vector__create(allocator_t *allocator);
 
     > If `allocator` is `NULL`, the default one will be used.
 **/
-#define vector_with_capacity(T, m_capacity, m_allocator)            \
-    ((vector(T))vector__with_capacity(                              \
-        pf_checked_umulsize(sizeof(T), (m_capacity)), (m_allocator) \
+#define vector_with_capacity(T, m_capacity, m_allocator)                 \
+    ((vector(T))vector__with_capacity(                                   \
+        vector__checked_umulsize(sizeof(T), (m_capacity)), (m_allocator) \
     ))
 
 vector_t *vector__with_capacity(size_t cap, allocator_t *allocator);
@@ -122,11 +122,11 @@ vector_t *vector__with_capacity(size_t cap, allocator_t *allocator);
     Unlike `vector_wrap`, this function copies `array` into a new buffer.
     Returns `NULL` if out of memory or `sizeof(T) == 0`.
 **/
-#define vector_from_array(m_items, m_length, m_allocator)    \
-    ((vector(typeof(*(m_items))))vector__from_array(         \
-        (const void *)(m_items),                             \
-        pf_checked_umulsize(sizeof(*(m_items)), (m_length)), \
-        (m_allocator)                                        \
+#define vector_from_array(m_items, m_length, m_allocator)         \
+    ((vector(typeof(*(m_items))))vector__from_array(              \
+        (const void *)(m_items),                                  \
+        vector__checked_umulsize(sizeof(*(m_items)), (m_length)), \
+        (m_allocator)                                             \
     ))
 
 vector_t *vector__from_array(
@@ -154,11 +154,11 @@ vector_t *vector__from_iter(iter_t *it, allocator_t *allocator, size_t stride);
 
     Returns `NULL` if out of memory or `sizeof(T) == 0`.
 **/
-#define vector_wrap(m_items, m_length, m_allocator)          \
-    ((vector(typeof(*(m_items))))vector__wrap(               \
-        (m_items),                                           \
-        pf_checked_umulsize(sizeof(*(m_items)), (m_length)), \
-        (m_allocator)                                        \
+#define vector_wrap(m_items, m_length, m_allocator)               \
+    ((vector(typeof(*(m_items))))vector__wrap(                    \
+        (m_items),                                                \
+        vector__checked_umulsize(sizeof(*(m_items)), (m_length)), \
+        (m_allocator)                                             \
     ))
 
 vector_t *vector__wrap(void *items, size_t length, allocator_t *allocator);
