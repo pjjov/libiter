@@ -22,6 +22,7 @@
 
 #include <allocator.h>
 #include <pf_bitwise.h>
+#include <pf_macro.h>
 #include <string.h>
 
 extern allocator_t *libiter_allocator;
@@ -217,13 +218,28 @@ void *pool__from_index(pool_t *pool, size_t index) {
     return NULL;
 }
 
+int pool__each(pool_t *pool, pool_each_fn *each, void *user) {
+    if (!pool || !each)
+        return ITER_EINVAL;
+
+    return ITER_OK;
+}
+
+struct pool_iter {
+    const pool_t *pool;
+    const struct bucket *bucket;
+    size_t index;
+};
+
 static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     if (!it || it == out)
         return ITER_EINVAL;
 
-    pool_t *pool = it->container;
-    const struct bucket *bucket = it->bucket;
-    uintptr_t i = (uintptr_t)it->current;
+    struct pool_iter *pit = ITER__CAST(it);
+
+    const pool_t *pool = pit->pool;
+    const struct bucket *bucket = pit->bucket;
+    size_t i = pit->index;
 
     if (size != pool->size)
         return ITER_EINVAL;
@@ -231,13 +247,13 @@ static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     if (out)
         skip++;
 
-    uintptr_t set = i / BUCKET_SIZE;
-    uintptr_t bit = i % BUCKET_SIZE;
-    uintptr_t value;
+    size_t set = i / BUCKET_SIZE;
+    size_t bit = i % BUCKET_SIZE;
+    void *value;
 
     while (bucket && skip > 0) {
         if (bucket->flags[set] & ((size_t)1 << bit)) {
-            value = (uintptr_t)bucket->start + pool->size * i;
+            value = PF_OFFSET(bucket->start, pool->size * i);
             skip--;
         }
 
@@ -253,8 +269,8 @@ static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     }
 
     i = set * BUCKET_SIZE + bit;
-    it->bucket = bucket;
-    it->current = (void *)i;
+    pit->bucket = bucket;
+    pit->index = i;
 
     if (skip > 0)
         return ITER_ENODATA;
@@ -267,9 +283,11 @@ iter_t *pool__iter(pool_t *pool, iter_t *out) {
     if (!out || !pool)
         return NULL;
 
+    struct pool_iter *pit = ITER__CAST(out);
+
     out->call = &pool_iter_fn;
-    out->container = pool;
-    out->bucket = pool->buffer;
-    out->current = (void *)(uintptr_t)0;
+    pit->pool = pool;
+    pit->bucket = pool->buffer;
+    pit->index = 0;
     return out;
 }

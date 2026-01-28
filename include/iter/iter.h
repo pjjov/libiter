@@ -20,6 +20,8 @@
     #define ITER_INLINE static inline
 #endif
 
+#define ITER__CAST(it) ((void *)(&(it)->buffer))
+
 /** ## iter(T) - Iterator interface
 
     `iter(T)` is an interface for traversing items of containers.
@@ -51,9 +53,10 @@ typedef int(iter_fn)(iter_t *iter, void *out, size_t size, size_t skip);
 **/
 struct iter_t {
     iter_fn *call;
-    void *container;
-    const void *bucket;
-    const void *current;
+    union {
+        char _size[sizeof(void *) * 3];
+        void *_alignment;
+    } buffer;
 };
 
 #define iter_type(m_iter) generic_value_type(iter_t, m_iter)

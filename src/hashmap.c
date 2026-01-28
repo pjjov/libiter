@@ -11,6 +11,8 @@
 #include <iter/iter.h>
 #include <string.h>
 
+#include <pf_macro.h>
+
 #undef ITER_API
 #define ITER_API
 #include <iter/hashmap.h>
@@ -516,14 +518,22 @@ int hashmap__filter(hashmap_t *map, hashmap_each_fn *filter, void *user) {
     return ITER_OK;
 }
 
+struct hashmap_iter {
+    const hashmap_t *map;
+    const union hashmeta *bucket;
+    size_t index;
+};
+
 static int hashmap_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     if (!it || it == out)
         return ITER_EINVAL;
 
-    hashmap_t *map = it->container;
-    const union hashmeta *bucket = it->bucket;
+    struct hashmap_iter *hit = ITER__CAST(it);
+
+    const hashmap_t *map = hit->map;
+    const union hashmeta *bucket = hit->bucket;
     const union hashmeta *end = get_meta(map, bucket_count(map));
-    uintptr_t i = (uintptr_t)it->current;
+    size_t i = hit->index;
 
     if (size != map->vsize)
         return ITER_EINVAL;
@@ -541,13 +551,13 @@ static int hashmap_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
         }
 
         if (++i >= META_SIZE) {
-            bucket = (void *)((uintptr_t)bucket + map->bucketSize);
+            bucket = PF_OFFSET(bucket, map->bucketSize);
             i = 0;
         }
     }
 
-    it->bucket = bucket;
-    it->current = (void *)i;
+    hit->bucket = bucket;
+    hit->index = i;
 
     if (out && value) {
         memcpy(out, value, map->vsize);
@@ -561,9 +571,11 @@ iter_t *hashmap__iter(hashmap_t *map, iter_t *out) {
     if (!map || !out)
         return NULL;
 
+    struct hashmap_iter *hit = ITER__CAST(out);
+
     out->call = &hashmap_iter_fn;
-    out->container = map;
-    out->bucket = map->buffer;
-    out->current = NULL;
+    hit->map = map;
+    hit->bucket = map->buffer;
+    hit->index = 0;
     return out;
 }
