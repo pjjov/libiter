@@ -14,7 +14,11 @@ typedef struct allocator_t allocator_t;
 #include <stddef.h>
 
 #ifndef ITER_API
-    #define ITER_API static inline
+    #define ITER_API
+#endif
+
+#ifndef ITER_INLINE
+    #define ITER_INLINE static inline
 #endif
 
 /** ## pool(T)
@@ -53,7 +57,9 @@ typedef struct pool_t {
 #define pool_init(T, m_out, m_allocator)                                 \
     ((pool(T))pool__init((m_out), (m_allocator), sizeof(T), alignof(T)))
 
-pool_t *pool__init(pool_t *out, allocator_t *alloc, size_t size, size_t align);
+ITER_API pool_t *pool__init(
+    pool_t *out, allocator_t *alloc, size_t size, size_t align
+);
 
 /** void pool_free(pool_t *pool);
 
@@ -62,7 +68,7 @@ pool_t *pool__init(pool_t *out, allocator_t *alloc, size_t size, size_t align);
 **/
 #define pool_free(m_pool) pool__free((m_pool))
 
-void pool__free(pool_t *pool);
+ITER_API void pool__free(pool_t *pool);
 
 /** pool(T) pool_create(type T, allocator_t *allocator);
 
@@ -74,7 +80,7 @@ void pool__free(pool_t *pool);
 #define pool_create(T, m_allocator)                               \
     ((pool(T))pool__create((m_allocator), sizeof(T), alignof(T)))
 
-pool_t *pool__create(allocator_t *alloc, size_t size, size_t align);
+ITER_API pool_t *pool__create(allocator_t *alloc, size_t size, size_t align);
 
 /** pool(T) pool_with_capacity(type T, size_t cap, allocator_t *allocator);
 
@@ -89,7 +95,7 @@ pool_t *pool__create(allocator_t *alloc, size_t size, size_t align);
         (m_capacity), (m_allocator), sizeof(T), alignof(T) \
     ))
 
-pool_t *pool__with_capacity(
+ITER_API pool_t *pool__with_capacity(
     size_t capacity, allocator_t *allocator, size_t size, size_t alignment
 );
 
@@ -99,7 +105,7 @@ pool_t *pool__with_capacity(
 **/
 #define pool_destroy(m_pool) pool__destroy(pool_as_base(m_pool))
 
-void pool__destroy(pool_t *pool);
+ITER_API void pool__destroy(pool_t *pool);
 
 /** int pool_reserve(pool(T) pool, size_t count);
 
@@ -109,7 +115,7 @@ void pool__destroy(pool_t *pool);
 #define pool_reserve(m_pool, m_count)              \
     pool__reserve(pool_as_base(m_pool), (m_count))
 
-int pool__reserve(pool_t *pool, size_t count);
+ITER_API int pool__reserve(pool_t *pool, size_t count);
 
 /** size_t pool_capacity(pool(T) pool);
 
@@ -118,7 +124,7 @@ int pool__reserve(pool_t *pool, size_t count);
 **/
 #define pool_capacity(m_pool) (pool__capacity(pool_as_base(m_pool)))
 
-ITER_API size_t pool__capacity(pool_t *pool) {
+ITER_INLINE size_t pool__capacity(pool_t *pool) {
     return pool ? pool->capacity : 0;
 }
 
@@ -127,7 +133,7 @@ ITER_API size_t pool__capacity(pool_t *pool) {
 **/
 #define pool_count(m_pool) (pool__count(pool_as_base(m_pool)))
 
-ITER_API size_t pool__count(pool_t *pool) { return pool ? pool->count : 0; }
+ITER_INLINE size_t pool__count(pool_t *pool) { return pool ? pool->count : 0; }
 
 /** allocator_t *pool_allocator(pool(T) pool);
 
@@ -135,7 +141,7 @@ ITER_API size_t pool__count(pool_t *pool) { return pool ? pool->count : 0; }
 **/
 #define pool_allocator(m_pool) (pool__allocator(pool_as_base(m_pool)))
 
-ITER_API allocator_t *pool__allocator(pool_t *pool) {
+ITER_INLINE allocator_t *pool__allocator(pool_t *pool) {
     return pool ? pool->allocator : NULL;
 }
 
@@ -147,7 +153,7 @@ ITER_API allocator_t *pool__allocator(pool_t *pool) {
 #define pool_take(m_pool)                                     \
     ((pool_type_ptr(m_pool))pool__take(pool_as_base(m_pool)))
 
-void *pool__take(pool_t *pool);
+ITER_API void *pool__take(pool_t *pool);
 
 /** int pool_give(pool(T) pool, T *item)
 
@@ -157,7 +163,7 @@ void *pool__take(pool_t *pool);
 #define pool_give(m_pool, m_item)                                     \
     pool__give(pool_as_base(m_pool), pool_check_type(m_pool, m_item))
 
-int pool__give(pool_t *pool, void *item);
+ITER_API int pool__give(pool_t *pool, void *item);
 
 /** size_t pool_to_index(pool(T) pool, T *item)
 
@@ -167,7 +173,7 @@ int pool__give(pool_t *pool, void *item);
 #define pool_to_index(m_pool, m_item)                                     \
     pool__to_index(pool_as_base(m_pool), pool_check_type(m_pool, m_item))
 
-size_t pool__to_index(pool_t *pool, void *item);
+ITER_API size_t pool__to_index(pool_t *pool, void *item);
 
 /** T *pool_from_index(pool(T) pool, size_t index)
 
@@ -177,7 +183,24 @@ size_t pool__to_index(pool_t *pool, void *item);
 #define pool_from_index(m_pool, m_index)                                       \
     ((pool_type_ptr(m_pool))pool__from_index(pool_as_base(m_pool), (m_index)))
 
-void *pool__from_index(pool_t *pool, size_t index);
+ITER_API void *pool__from_index(pool_t *pool, size_t index);
+
+/** int pool_each(pool(T) pool, pool_each_fn *each, void *user);
+
+    Calls the `each` callback for each item present in `pool`,
+    stopping if a non-zero value is returned by one of the calls.
+
+    ```c
+    typedef int(pool_each_fn)(void *item, void *user);
+    ```
+
+    Possible error codes: ITER_EINVAL, ITER_EINTR.
+**/
+#define pool_each(m_pool, m_each, m_user)                \
+    pool__each(pool_as_base(m_pool), (m_each), (m_user))
+
+typedef int(pool_each_fn)(void *item, void *user);
+ITER_API int pool__each(pool_t *pool, pool_each_fn *each, void *user);
 
 /** iter(T) pool_iter(pool(T) pool, iter_t *out);
 
@@ -187,6 +210,6 @@ void *pool__from_index(pool_t *pool, size_t index);
 #define pool_iter(m_pool, m_out)                                         \
     ((iter(pool_type(m_pool)))pool__iter(pool_as_base(m_pool), (m_out)))
 
-iter_t *pool__iter(pool_t *pool, iter_t *out);
+ITER_API iter_t *pool__iter(pool_t *pool, iter_t *out);
 
 #endif

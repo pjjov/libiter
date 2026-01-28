@@ -15,7 +15,11 @@ typedef struct allocator_t allocator_t;
 #include <stddef.h>
 
 #ifndef ITER_API
-    #define ITER_API static inline
+    #define ITER_API
+#endif
+
+#ifndef ITER_INLINE
+    #define ITER_INLINE static inline
 #endif
 
 /** # vector(T) - Growable arrays
@@ -84,7 +88,7 @@ PF_IMPL_OVERFLOW(PF_OVERFLOW_SIZE, size_t, u, size, vector_)
 #define vector_init(T, m_vec, m_allocator)            \
     ((vector(T))vector__init((m_vec), (m_allocator)))
 
-vector_t *vector__init(vector_t *vec, allocator_t *allocator);
+ITER_API vector_t *vector__init(vector_t *vec, allocator_t *allocator);
 
 /** void vector_free(vector_t *vec);
 
@@ -92,7 +96,7 @@ vector_t *vector__init(vector_t *vec, allocator_t *allocator);
     by `vector_init` beforehand, if it's not `NULL`.
 **/
 #define vector_free(m_vec) vector__free((m_vec))
-void vector__free(vector_t *vec);
+ITER_API void vector__free(vector_t *vec);
 
 /** vector(T) vector_create(type T, allocator_t *allocator);
 
@@ -100,7 +104,7 @@ void vector__free(vector_t *vec);
     Returns `NULL` if out of memory or `sizeof(T) == 0`.
 **/
 #define vector_create(T, m_allocator) ((vector(T))vector__create((m_allocator)))
-vector_t *vector__create(allocator_t *allocator);
+ITER_API vector_t *vector__create(allocator_t *allocator);
 
 /** vector(T) vector_with_capacity(type T, size_t cap, allocator_t *allocator);
 
@@ -114,7 +118,7 @@ vector_t *vector__create(allocator_t *allocator);
         vector__checked_umulsize(sizeof(T), (m_capacity)), (m_allocator) \
     ))
 
-vector_t *vector__with_capacity(size_t cap, allocator_t *allocator);
+ITER_API vector_t *vector__with_capacity(size_t cap, allocator_t *allocator);
 
 /** vector(T) vector_from_array(T *array, size_t len, allocator_t *allocator);
 
@@ -129,7 +133,7 @@ vector_t *vector__with_capacity(size_t cap, allocator_t *allocator);
         (m_allocator)                                             \
     ))
 
-vector_t *vector__from_array(
+ITER_API vector_t *vector__from_array(
     const void *items, size_t length, allocator_t *alloc
 );
 
@@ -143,7 +147,9 @@ vector_t *vector__from_array(
         iter_as_base(m_it), (m_allocator), iter_type_size(m_it) \
     ))
 
-vector_t *vector__from_iter(iter_t *it, allocator_t *allocator, size_t stride);
+ITER_API vector_t *vector__from_iter(
+    iter_t *it, allocator_t *allocator, size_t stride
+);
 
 /** vector(T) vector_wrap(T *array, size_t length, allocator_t *allocator);
 
@@ -161,7 +167,9 @@ vector_t *vector__from_iter(iter_t *it, allocator_t *allocator, size_t stride);
         (m_allocator)                                             \
     ))
 
-vector_t *vector__wrap(void *items, size_t length, allocator_t *allocator);
+ITER_API vector_t *vector__wrap(
+    void *items, size_t length, allocator_t *allocator
+);
 
 /** vector(T) vector_clone(vector(T) vec, allocator_t *allocator);
 
@@ -171,7 +179,9 @@ vector_t *vector__wrap(void *items, size_t length, allocator_t *allocator);
 #define vector_clone(m_vec, m_allocator)                                 \
     ((typeof(m_vec))vector__clone(vector_as_base(m_vec), (m_allocator)))
 
-ITER_API vector_t *vector__clone(const vector_t *vec, allocator_t *allocator) {
+ITER_INLINE vector_t *vector__clone(
+    const vector_t *vec, allocator_t *allocator
+) {
     return vec ? vector__from_array(vec->items, vec->length, allocator) : NULL;
 }
 
@@ -183,14 +193,14 @@ ITER_API vector_t *vector__clone(const vector_t *vec, allocator_t *allocator) {
 #define vector_unwrap(m_vec)                                        \
     ((vector_type_ptr(m_vec))vector__unwrap(vector_as_base(m_vec)))
 
-void *vector__unwrap(vector_t *vec);
+ITER_API void *vector__unwrap(vector_t *vec);
 
 /** void vector_destroy(vector(T) vec);
 
     Frees all resources used by `vector` if it's not `NULL`.
 **/
 #define vector_destroy(m_vec) vector__destroy(vector_as_base(m_vec))
-void vector__destroy(vector_t *vec);
+ITER_API void vector__destroy(vector_t *vec);
 
 /** T *vector_slot(vector(T) vec, size_t i);
 
@@ -202,7 +212,7 @@ void vector__destroy(vector_t *vec);
     ((vector_type_ptr(m_vec))                                              \
          vector__slot(vector_as_base(m_vec), vector_type_mul(m_vec, m_i)))
 
-static inline void *vector__slot(const vector_t *vec, size_t i) {
+ITER_INLINE void *vector__slot(const vector_t *vec, size_t i) {
     if (!vec || i >= vec->capacity)
         return NULL;
     return &((unsigned char *)vec->items)[i];
@@ -218,7 +228,7 @@ static inline void *vector__slot(const vector_t *vec, size_t i) {
     ((vector_type_ptr(m_vec))                                                 \
          vector__get(vector_as_base(m_vec), vector_type_mul(m_vec, m_index)))
 
-ITER_API void *vector__get(const vector_t *vec, size_t i) {
+ITER_INLINE void *vector__get(const vector_t *vec, size_t i) {
     if (!vec || i >= vec->length)
         return NULL;
     return &((unsigned char *)vec->items)[i];
@@ -233,7 +243,7 @@ ITER_API void *vector__get(const vector_t *vec, size_t i) {
     (vector__index(vector_as_base(m_vec), vector_check_type(m_vec, m_item)) \
      / vector_type_size(m_vec))
 
-size_t vector__index(const vector_t *vec, const void *item);
+ITER_API size_t vector__index(const vector_t *vec, const void *item);
 
 /** T *vector_items(vector(T) vec);
 
@@ -245,7 +255,7 @@ size_t vector__index(const vector_t *vec, const void *item);
 #define vector_items(m_vec)                                        \
     (vector_type_ptr(m_vec))(vector__items(vector_as_base(m_vec)))
 
-ITER_API void *vector__items(const vector_t *vec) {
+ITER_INLINE void *vector__items(const vector_t *vec) {
     return vec ? vec->items : NULL;
 }
 
@@ -259,7 +269,7 @@ ITER_API void *vector__items(const vector_t *vec) {
 #define vector_end(m_vec)                                        \
     (vector_type_ptr(m_vec))(vector__end(vector_as_base(m_vec)))
 
-ITER_API void *vector__end(const vector_t *vec) {
+ITER_INLINE void *vector__end(const vector_t *vec) {
     return vec ? &((unsigned char *)vec->items)[vec->length] : NULL;
 }
 
@@ -270,7 +280,7 @@ ITER_API void *vector__end(const vector_t *vec) {
 #define vector_length(m_vec)                                          \
     (vector__length(vector_as_base(m_vec)) / vector_type_size(m_vec))
 
-ITER_API size_t vector__length(const vector_t *vec) {
+ITER_INLINE size_t vector__length(const vector_t *vec) {
     return vec ? vec->length : 0;
 }
 
@@ -281,7 +291,7 @@ ITER_API size_t vector__length(const vector_t *vec) {
 #define vector_capacity(m_vec)                                          \
     (vector__capacity(vector_as_base(m_vec)) / vector_type_size(m_vec))
 
-ITER_API size_t vector__capacity(const vector_t *vec) {
+ITER_INLINE size_t vector__capacity(const vector_t *vec) {
     return vec ? vec->capacity : 0;
 }
 
@@ -304,7 +314,7 @@ ITER_API size_t vector__capacity(const vector_t *vec) {
 **/
 #define vector_allocator(m_vec) (vector__allocator(vector_as_base(m_vec)))
 
-ITER_API allocator_t *vector__allocator(const vector_t *vec) {
+ITER_INLINE allocator_t *vector__allocator(const vector_t *vec) {
     return vec ? vec->allocator : NULL;
 }
 
@@ -320,7 +330,7 @@ ITER_API allocator_t *vector__allocator(const vector_t *vec) {
 **/
 #define vector_clear(m_vec) vector__clear(vector_as_base(m_vec))
 
-ITER_API void vector__clear(vector_t *vec) {
+ITER_INLINE void vector__clear(vector_t *vec) {
     if (vec)
         vec->length = 0;
 }
@@ -334,7 +344,7 @@ ITER_API void vector__clear(vector_t *vec) {
 #define vector_set_length(m_vec, m_length) \
     vector__set_length(vector_as_base(m_vec), vector_type_mul(m_vec, m_length))
 
-ITER_API size_t vector__set_length(vector_t *vec, size_t length) {
+ITER_INLINE size_t vector__set_length(vector_t *vec, size_t length) {
     if (!vec || length > vec->capacity)
         return ITER_EINVAL;
 
@@ -354,7 +364,7 @@ ITER_API size_t vector__set_length(vector_t *vec, size_t length) {
 #define vector_resize(m_vec, m_capacity)                                      \
     vector__resize(vector_as_base(m_vec), vector_type_mul(m_vec, m_capacity))
 
-int vector__resize(vector_t *vec, size_t capacity);
+ITER_API int vector__resize(vector_t *vec, size_t capacity);
 
 /** int vector_reserve(vector(T) vec, size_t count);
 
@@ -366,7 +376,7 @@ int vector__resize(vector_t *vec, size_t capacity);
 #define vector_reserve(m_vec, m_count)                                      \
     vector__reserve(vector_as_base(m_vec), vector_type_mul(m_vec, m_count))
 
-int vector__reserve(vector_t *vec, size_t size);
+ITER_API int vector__reserve(vector_t *vec, size_t size);
 
 /** int vector_shrink(vector(T) vec);
 
@@ -375,7 +385,7 @@ int vector__reserve(vector_t *vec, size_t size);
 **/
 #define vector_shrink(m_vec) vector__shrink(vector_as_base(m_vec))
 
-ITER_API int vector__shrink(vector_t *vec) {
+ITER_INLINE int vector__shrink(vector_t *vec) {
     return vector__resize(vec, vector__length(vec));
 }
 
@@ -394,7 +404,9 @@ ITER_API int vector__shrink(vector_t *vec) {
         vector_type_mul(m_vec, m_count)             \
     )
 
-int vector__insert(vector_t *vec, const void *items, size_t i, size_t size);
+ITER_API int vector__insert(
+    vector_t *vec, const void *items, size_t i, size_t size
+);
 
 /** int vector_push(vector(T) vec, T *items, size_t count);
 
@@ -408,7 +420,7 @@ int vector__insert(vector_t *vec, const void *items, size_t i, size_t size);
         vector_type_mul(m_vec, m_count)      \
     )
 
-ITER_API int vector__push(vector_t *vec, const void *items, size_t size) {
+ITER_INLINE int vector__push(vector_t *vec, const void *items, size_t size) {
     return vector__insert(vec, items, vector__length(vec), size);
 }
 
@@ -425,7 +437,7 @@ ITER_API int vector__push(vector_t *vec, const void *items, size_t size) {
         vector_type_mul(m_vec, (m_count))               \
     )
 
-ITER_API int vector__insert_at(
+ITER_INLINE int vector__insert_at(
     vector_t *vec, const void *items, void *at, size_t size
 ) {
     size_t i = vector__index(vec, at);
@@ -447,7 +459,7 @@ ITER_API int vector__insert_at(
         vector_type_mul(m_vec, m_count)                 \
     )
 
-ITER_API int vector__try_insert(
+ITER_INLINE int vector__try_insert(
     vector_t *vec, const void *items, size_t i, size_t size
 ) {
     if (vec && vec->length + size > vec->capacity)
@@ -467,7 +479,7 @@ ITER_API int vector__try_insert(
         vector_type_mul(m_vec, (m_count))  \
     )
 
-int vector__remove(vector_t *vec, size_t i, size_t size);
+ITER_API int vector__remove(vector_t *vec, size_t i, size_t size);
 
 /** int vector_pop(vector(T) vec, size_t count);
 
@@ -477,7 +489,7 @@ int vector__remove(vector_t *vec, size_t i, size_t size);
 #define vector_pop(m_vec, m_count)                                        \
     vector__pop(vector_as_base(m_vec), vector_type_mul(m_vec, (m_count)))
 
-ITER_API int vector__pop(vector_t *vec, size_t count) {
+ITER_INLINE int vector__pop(vector_t *vec, size_t count) {
     if (!vec || count > vec->length)
         return ITER_EINVAL;
     return vector__remove(vec, vec->length - count, count);
@@ -495,7 +507,7 @@ ITER_API int vector__pop(vector_t *vec, size_t count) {
         vector_type_mul(m_vec, (m_count))      \
     )
 
-ITER_API int vector__remove_at(vector_t *vec, void *at, size_t size) {
+ITER_INLINE int vector__remove_at(vector_t *vec, void *at, size_t size) {
     return vector__remove(vec, vector__index(vec, at), size);
 }
 
@@ -513,7 +525,7 @@ ITER_API int vector__remove_at(vector_t *vec, void *at, size_t size) {
         vector_type_mul(m_vec, (m_count))       \
     )
 
-int vector__swap_remove(vector_t *vec, size_t i, size_t size);
+ITER_API int vector__swap_remove(vector_t *vec, size_t i, size_t size);
 
 /** int vector_swap(vector(T) vec, size_t i, size_t j, size_t count);
 
@@ -528,7 +540,7 @@ int vector__swap_remove(vector_t *vec, size_t i, size_t size);
         vector_type_mul(m_vec, (m_count))     \
     )
 
-int vector__swap(vector_t *vec, size_t i, size_t j, size_t size);
+ITER_API int vector__swap(vector_t *vec, size_t i, size_t j, size_t size);
 
 /** int vector_each(vector(T) vec, vector_each_fn *each, void *user);
 
@@ -547,7 +559,9 @@ int vector__swap(vector_t *vec, size_t i, size_t j, size_t size);
     )
 
 typedef int(vector_each_fn)(void *item, void *user);
-int vector__each(vector_t *vec, vector_each_fn *each, void *user, size_t size);
+ITER_API int vector__each(
+    vector_t *vec, vector_each_fn *each, void *user, size_t size
+);
 
 /** int vector_filter(vector(T) vec, vector_each_fn *filter, void *user);
 
@@ -559,7 +573,7 @@ int vector__each(vector_t *vec, vector_each_fn *each, void *user, size_t size);
         vector_as_base(m_vec), (m_filter), (m_user), vector_type_size(m_vec) \
     )
 
-int vector__filter(
+ITER_API int vector__filter(
     vector_t *vec, vector_each_fn *filter, void *user, size_t size
 );
 
@@ -586,7 +600,7 @@ int vector__filter(
 
 typedef int(vector_map_fn)(void *dst, void *src, void *user);
 
-int vector__map(
+ITER_API int vector__map(
     vector_t *dst,
     vector_t *src,
     vector_map_fn *map,
@@ -614,7 +628,7 @@ int vector__map(
 
 typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t size);
 
-void *vector__find(
+ITER_API void *vector__find(
     vector_t *vec, const void *item, size_t size, vector_compare_fn *cmp
 );
 
@@ -627,6 +641,6 @@ void *vector__find(
 #define vector_iter(m_vec, m_out)                                            \
     ((iter(vector_type(m_vec)))vector__iter(vector_as_base(m_vec), (m_out)))
 
-iter_t *vector__iter(vector_t *vec, iter_t *out);
+ITER_API iter_t *vector__iter(vector_t *vec, iter_t *out);
 
 #endif

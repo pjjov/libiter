@@ -28,7 +28,11 @@
 #include <stdint.h>
 
 #ifndef ITER_API
-    #define ITER_API static inline
+    #define ITER_API
+#endif
+
+#ifndef ITER_INLINE
+    #define ITER_INLINE static inline
 #endif
 
 #ifndef ITER_HASH_TYPE
@@ -105,7 +109,7 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
     You can define HASH_FNV_PRIME and HASH_FNV_OFFSET to change the parameters.
     Source: en.wikipedia.org/wiki/Fowler%E2%80%93Noll%E2%80%93Vo_hash_function
 **/
-ITER_API hash_t hasher_fnv1a(const void *buffer, size_t length) {
+ITER_INLINE hash_t hasher_fnv1a(const void *buffer, size_t length) {
     hash_t hash = HASH_FNV_OFFSET;
     const char *bytes = buffer;
 
@@ -123,7 +127,7 @@ ITER_API hash_t hasher_fnv1a(const void *buffer, size_t length) {
     Hash function by Dan Bernstein.
     Source: www.cse.yorku.ca/~oz/hash.html
 **/
-ITER_API hash_t hasher_djb2(const void *buffer, size_t length) {
+ITER_INLINE hash_t hasher_djb2(const void *buffer, size_t length) {
     uint32_t hash = 5381;
     const char *bytes = buffer;
 
@@ -138,7 +142,7 @@ ITER_API hash_t hasher_djb2(const void *buffer, size_t length) {
     Hash function created for sdbm (a public-domain reimplementation of ndbm).
     Source: www.cse.yorku.ca/~oz/hash.html
 **/
-ITER_API hash_t hasher_sdbm(const void *buffer, size_t length) {
+ITER_INLINE hash_t hasher_sdbm(const void *buffer, size_t length) {
     uint32_t hash = 0;
     const char *bytes = buffer;
 
@@ -153,7 +157,7 @@ ITER_API hash_t hasher_sdbm(const void *buffer, size_t length) {
     Hash function by Peter J. Weinberger.
     Source: en.wikipedia.org/wiki/PJW_hash_function
 **/
-ITER_API hash_t hasher_elf(const void *buffer, size_t length) {
+ITER_INLINE hash_t hasher_elf(const void *buffer, size_t length) {
     const unsigned char *bytes = buffer;
     uint32_t h = 0, high;
 

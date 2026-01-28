@@ -14,7 +14,11 @@
 typedef struct allocator_t allocator_t;
 
 #ifndef ITER_API
-    #define ITER_API static inline
+    #define ITER_API
+#endif
+
+#ifndef ITER_INLINE
+    #define ITER_INLINE static inline
 #endif
 
 /** ## hashmap(K, V) - Associative arrays
@@ -85,7 +89,7 @@ struct hashmap_layout {
     ((hashmap(K, V))                                                        \
          hashmap__init((m_out), (m_allocator), &hashmap_make_layout(K, V)))
 
-hashmap_t *hashmap__init(
+ITER_API hashmap_t *hashmap__init(
     hashmap_t *out, allocator_t *allocator, const struct hashmap_layout *layout
 );
 
@@ -95,7 +99,7 @@ hashmap_t *hashmap__init(
     by `hashmap_init` beforehand, if it's not `NULL`.
 **/
 #define hashmap_free(m_map) hashmap__free(hashmap_as_base(m_map))
-void hashmap__free(hashmap_t *map);
+ITER_API void hashmap__free(hashmap_t *map);
 
 /** hashmap(K, V) hashmap_create(type K, type V, allocator_t *allocator);
 
@@ -107,7 +111,7 @@ void hashmap__free(hashmap_t *map);
 #define hashmap_create(K, V, m_allocator) \
     ((hashmap(K, V))hashmap__create((m_allocator), &hashmap_make_layout(K, V)))
 
-hashmap_t *hashmap__create(
+ITER_API hashmap_t *hashmap__create(
     allocator_t *allocator, const struct hashmap_layout *layout
 );
 
@@ -128,7 +132,7 @@ hashmap_t *hashmap__create(
         (m_capacity), (m_allocator), &hashmap_make_layout(K, V) \
     ))
 
-hashmap_t *hashmap__with_capacity(
+ITER_API hashmap_t *hashmap__with_capacity(
     size_t capacity, allocator_t *allocator, const struct hashmap_layout *layout
 );
 
@@ -154,7 +158,7 @@ hashmap_t *hashmap__with_capacity(
         &hashmap_make_layout(typeof(*(m_keys)), typeof(*(m_values)))        \
     ))
 
-hashmap_t *hashmap__from_arrays(
+ITER_API hashmap_t *hashmap__from_arrays(
     const void *keys,
     const void *values,
     size_t count,
@@ -168,7 +172,7 @@ hashmap_t *hashmap__from_arrays(
     > If `map` is `NULL`, the function silently returns.
 **/
 #define hashmap_destroy(m_map) hashmap__destroy(hashmap_as_base(m_map))
-void hashmap__destroy(hashmap_t *map);
+ITER_API void hashmap__destroy(hashmap_t *map);
 
 /** int hashmap_use_hash(hashmap(K, V) map, hash_fn *hash, hasher_fn *hasher);
 
@@ -179,7 +183,9 @@ void hashmap__destroy(hashmap_t *map);
 #define hashmap_use_hash(m_map, m_hash, m_hasher)                   \
     hashmap__use_hash(hashmap_as_base(m_map), (m_hash), (m_hasher))
 
-int hashmap__use_hash(hashmap_t *map, hash_fn *hash, hasher_fn *hasher);
+ITER_API int hashmap__use_hash(
+    hashmap_t *map, hash_fn *hash, hasher_fn *hasher
+);
 
 /** int hashmap_reserve(hashmap(K, V) map, size_t count);
 
@@ -189,7 +195,7 @@ int hashmap__use_hash(hashmap_t *map, hash_fn *hash, hasher_fn *hasher);
 #define hashmap_reserve(m_map, m_count)                 \
     hashmap__reserve(hashmap_as_base(m_map), (m_count))
 
-int hashmap__reserve(hashmap_t *map, size_t count);
+ITER_API int hashmap__reserve(hashmap_t *map, size_t count);
 
 /** size_t hashmap_count(const hashmap(K, V) map);
 
@@ -197,7 +203,7 @@ int hashmap__reserve(hashmap_t *map, size_t count);
 **/
 #define hashmap_count(m_map) hashmap__count(hashmap_as_base(m_map))
 
-ITER_API size_t hashmap__count(const hashmap_t *map) {
+ITER_INLINE size_t hashmap__count(const hashmap_t *map) {
     return map ? map->count : 0;
 }
 
@@ -207,7 +213,7 @@ ITER_API size_t hashmap__count(const hashmap_t *map) {
 **/
 #define hashmap_capacity(m_map) hashmap__capacity(hashmap_as_base(m_map))
 
-ITER_API size_t hashmap__capacity(const hashmap_t *map) {
+ITER_INLINE size_t hashmap__capacity(const hashmap_t *map) {
     return map && map->buffer ? 1 << map->capacityLog2 : 0;
 }
 
@@ -217,7 +223,7 @@ ITER_API size_t hashmap__capacity(const hashmap_t *map) {
 **/
 #define hashmap_allocator(m_map) hashmap__allocator(hashmap_as_base(m_map))
 
-ITER_API allocator_t *hashmap__allocator(const hashmap_t *map) {
+ITER_INLINE allocator_t *hashmap__allocator(const hashmap_t *map) {
     return map ? map->allocator : NULL;
 }
 
@@ -230,7 +236,7 @@ ITER_API allocator_t *hashmap__allocator(const hashmap_t *map) {
         hashmap_as_base(m_map), hashmap_check_key(m_map, m_key) \
     ))
 
-void *hashmap__get(const hashmap_t *map, const void *key);
+ITER_API void *hashmap__get(const hashmap_t *map, const void *key);
 
 /** int hashmap_set(hashmap(K, V) map, const K *key, const V *value);
 
@@ -244,7 +250,7 @@ void *hashmap__get(const hashmap_t *map, const void *key);
         (void *)hashmap_check_value(m_map, m_value) \
     )
 
-int hashmap__set(hashmap_t *map, const void *key, const void *value);
+ITER_API int hashmap__set(hashmap_t *map, const void *key, const void *value);
 
 /** int hashmap_insert(hashmap(K, V) map, const K *key, const V *value);
 
@@ -258,7 +264,9 @@ int hashmap__set(hashmap_t *map, const void *key, const void *value);
         (void *)hashmap_check_value(m_map, m_value) \
     )
 
-int hashmap__insert(hashmap_t *map, const void *key, const void *value);
+ITER_API int hashmap__insert(
+    hashmap_t *map, const void *key, const void *value
+);
 
 /** int hashmap_remove(hashmap(K, V) map, const K *key);
 
@@ -268,7 +276,7 @@ int hashmap__insert(hashmap_t *map, const void *key, const void *value);
 #define hashmap_remove(m_map, m_key)                                         \
     hashmap__remove(hashmap_as_base(m_map), hashmap_check_key(m_map, m_key))
 
-int hashmap__remove(hashmap_t *map, const void *key);
+ITER_API int hashmap__remove(hashmap_t *map, const void *key);
 
 /** void hashmap_clear(hashmap(K, V) map);
 
@@ -276,7 +284,7 @@ int hashmap__remove(hashmap_t *map, const void *key);
 **/
 #define hashmap_clear(m_map) hashmap__clear(hashmap_as_base(m_map))
 
-void hashmap__clear(hashmap_t *map);
+ITER_API void hashmap__clear(hashmap_t *map);
 
 /** int hashmap_fast_insert(hashmap(K, V) map, const K *key, const V *value);
 
@@ -291,7 +299,9 @@ void hashmap__clear(hashmap_t *map);
         (void *)hashmap_check_value(m_map, m_value) \
     )
 
-int hashmap__fast_insert(hashmap_t *map, const void *key, const void *value);
+ITER_API int hashmap__fast_insert(
+    hashmap_t *map, const void *key, const void *value
+);
 
 /** int hashmap_each(hashmap(T) map, hashmap_each_fn *each, void *user);
 
@@ -308,7 +318,7 @@ int hashmap__fast_insert(hashmap_t *map, const void *key, const void *value);
     hashmap__each(hashmap_as_base(m_map), (m_each), (m_user))
 
 typedef int(hashmap_each_fn)(void *key, void *value, void *user);
-int hashmap__each(hashmap_t *map, hashmap_each_fn *each, void *user);
+ITER_API int hashmap__each(hashmap_t *map, hashmap_each_fn *each, void *user);
 
 /** int hashmap_filter(hashmap(T) map, hashmap_each_fn *filter, void *user);
 
@@ -318,7 +328,9 @@ int hashmap__each(hashmap_t *map, hashmap_each_fn *each, void *user);
 #define hashmap_filter(m_map, m_filter, m_user)                   \
     hashmap__filter(hashmap_as_base(m_map), (m_filter), (m_user))
 
-int hashmap__filter(hashmap_t *map, hashmap_each_fn *filter, void *user);
+ITER_API int hashmap__filter(
+    hashmap_t *map, hashmap_each_fn *filter, void *user
+);
 
 /** iter(V) hashmap_iter(hashmap(K, V) map, iter_t *out);
 
@@ -329,6 +341,6 @@ int hashmap__filter(hashmap_t *map, hashmap_each_fn *filter, void *user);
 #define hashmap_iter(m_map, m_out) \
     ((iter(hashmap_value(m_map)))hashmap__iter(hashmap_as_base(m_map), (m_out)))
 
-iter_t *hashmap__iter(hashmap_t *map, iter_t *out);
+ITER_API iter_t *hashmap__iter(hashmap_t *map, iter_t *out);
 
 #endif

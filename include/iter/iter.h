@@ -13,7 +13,11 @@
 #include <stddef.h>
 
 #ifndef ITER_API
-    #define ITER_API static inline
+    #define ITER_API
+#endif
+
+#ifndef ITER_INLINE
+    #define ITER_INLINE static inline
 #endif
 
 /** ## iter(T) - Iterator interface
@@ -69,7 +73,7 @@ PF_IMPL_OVERFLOW(PF_OVERFLOW_SIZE, size_t, u, size, iter_)
     #define iter__checked_umulsize(m_l, m_r) ((m_l) * (m_r))
 #endif
 
-ITER_API int iter__call(iter_t *it, void *out, size_t size, size_t skip) {
+ITER_INLINE int iter__call(iter_t *it, void *out, size_t size, size_t skip) {
     return it && it->call ? it->call(it, out, size, skip) : ITER_EINVAL;
 }
 
@@ -131,7 +135,8 @@ ITER_API int iter__call(iter_t *it, void *out, size_t size, size_t skip) {
         iter_type_size(m_iter)                 \
     )
 
-size_t iter__to_array(iter_t *it, void *out, size_t length, size_t stride);
+ITER_API size_t
+iter__to_array(iter_t *it, void *out, size_t length, size_t stride);
 
 /** iter(T) iter_from_array(iter_t *out, const T *items, size_t length);
 
@@ -144,6 +149,8 @@ size_t iter__to_array(iter_t *it, void *out, size_t length, size_t stride);
         iter__checked_umulsize((m_length), sizeof(*(m_items))) \
     ))
 
-iter_t *iter__from_array(iter_t *out, const void *items, size_t length);
+ITER_API iter_t *iter__from_array(
+    iter_t *out, const void *items, size_t length
+);
 
 #endif

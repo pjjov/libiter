@@ -11,6 +11,14 @@
 #include <allocator.h>
 #include <iter/hash.h>
 
+#ifndef ITER_API
+    #define ITER_API
+#endif
+
+#ifndef ITER_INLINE
+    #define ITER_INLINE static inline
+#endif
+
 /** # Default allocator
 
     This function sets the default allocator for containers and returns the
@@ -20,10 +28,10 @@
 
     **This function is NOT thread-safe.**
 **/
-allocator_t *libiter_use_allocator(allocator_t *allocator);
+ITER_API allocator_t *libiter_use_allocator(allocator_t *allocator);
 
 /** # Default hasher
-    
+
     This function sets the default hasher for containers and returns the
     previous one. Containers created before calling this function will continue
     to use the previously set hasher. If `NULL` is passed, the original
@@ -31,6 +39,6 @@ allocator_t *libiter_use_allocator(allocator_t *allocator);
 
     **This function is NOT thread-safe.**
 **/
-hasher_fn *libiter_use_hasher(hasher_fn *hasher);
+ITER_API hasher_fn *libiter_use_hasher(hasher_fn *hasher);
 
 #endif
