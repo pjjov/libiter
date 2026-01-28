@@ -208,7 +208,7 @@ size_t vector__index(const vector_t *vec, const void *item) {
     if (item < vec->items || item > vector__slot(vec, vec->length - 1))
         return vec->length;
 
-    return (uintptr_t)item - (uintptr_t)vec->items;
+    return (uint8_t *)item - (uint8_t *)vec->items;
 }
 
 int vector__each(vector_t *vec, vector_each_fn *each, void *user, size_t size) {

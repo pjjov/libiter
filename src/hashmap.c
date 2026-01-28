@@ -102,19 +102,19 @@ static inline uint64_t get_hash(const hashmap_t *map, const void *key) {
 }
 
 static inline union hashmeta *get_meta(const hashmap_t *map, size_t b) {
-    return (union hashmeta *)((uintptr_t)map->buffer + map->bucketSize * b);
+    return PF_OFFSET(map->buffer, map->bucketSize * b);
 }
 
 static inline void *get_key(
     const hashmap_t *map, const union hashmeta *meta, uint8_t i
 ) {
-    return (void *)((uintptr_t)meta + map->koffset + i * map->ksize);
+    return PF_OFFSET(meta, map->koffset + i * map->ksize);
 }
 
 static inline void *get_value(
     const hashmap_t *map, const union hashmeta *meta, uint8_t i
 ) {
-    return (void *)((uintptr_t)meta + map->voffset + i * map->vsize);
+    return PF_OFFSET(meta, map->voffset + i * map->vsize);
 }
 
 static inline size_t get_mask(const hashmap_t *map) {
@@ -213,8 +213,8 @@ hashmap_t *hashmap__from_arrays(
 
     if (map) {
         for (int i = 0; i < count; i++) {
-            void *key = (void *)((uintptr_t)keys + i * layout->ksize);
-            void *value = (void *)((uintptr_t)values + i * layout->vsize);
+            void *key = PF_OFFSET(keys, i * layout->ksize);
+            void *value = PF_OFFSET(values, i * layout->vsize);
             hashmap__insert(map, key, value);
         }
     }

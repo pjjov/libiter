@@ -21,7 +21,7 @@ size_t iter__to_array(iter_t *it, void *out, size_t length, size_t stride) {
         return 0;
 
     for (size_t i = 0; i < length; i++) {
-        void *slot = (void *)((uintptr_t)out + stride * i);
+        void *slot = PF_OFFSET(out, stride * i);
         if (iter__call(it, slot, stride, 0))
             return i;
     }

@@ -117,8 +117,8 @@ int pool__reserve(pool_t *pool, size_t count) {
 
         bucket->count = bucket->empty = 0;
         bucket->capacity = cap;
-        bucket->start = (void *)((uintptr_t)bucket + offset);
-        bucket->end = (void *)((uintptr_t)bucket->start + cap * pool->size);
+        bucket->start = PF_OFFSET(bucket, offset);
+        bucket->end = PF_OFFSET(bucket->start, cap * pool->size);
         bucket->next = pool->buffer;
         memset(bucket->flags, 0, sizeof(size_t) * cap / BUCKET_SIZE);
 
@@ -142,7 +142,7 @@ int pool__give(pool_t *pool, void *item) {
     if (!bucket)
         return ITER_ENOENT;
 
-    size_t index = ((uintptr_t)item - (uintptr_t)bucket->start) / pool->size;
+    size_t index = PF_PTRDIFF(item, bucket->start) / pool->size;
     size_t mask = (size_t)1 << (index % BUCKET_SIZE);
 
     if (!(bucket->flags[index / BUCKET_SIZE] & mask))
@@ -175,7 +175,7 @@ void *pool__take(pool_t *pool) {
 
             bucket->empty = i;
             size_t offset = (i * BUCKET_SIZE + bit) * pool->size;
-            return (void *)((uintptr_t)bucket->start + offset);
+            return PF_OFFSET(bucket->start, offset);
         }
     }
 
@@ -209,7 +209,7 @@ void *pool__from_index(pool_t *pool, size_t index) {
     for (; bucket; bucket = bucket->next) {
         if (index < bucket->capacity) {
             size_t offset = index * pool->size;
-            return (void *)((uintptr_t)bucket->start + offset);
+            return PF_OFFSET(bucket->start, offset);
         }
 
         index -= bucket->capacity;
