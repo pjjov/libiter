@@ -212,4 +212,14 @@ ITER_API int pool__each(pool_t *pool, pool_each_fn *each, void *user);
 
 ITER_API iter_t *pool__iter(pool_t *pool, iter_t *out);
 
+/** iter(T *) pool_iter_ref(pool(T) pool, iter_t *out);
+
+    Creates a iterator that returns addreses of items taken from the pool.
+    > The returned iterator cannot be used after destroying it's pool.
+**/
+#define pool_iter_ref(m_pool, m_out) \
+    ((iter(pool_type_ptr(m_pool)))pool__iter_ref(pool_as_base(m_pool), (m_out)))
+
+ITER_API iter_t *pool__iter_ref(pool_t *pool, iter_t *out);
+
 #endif

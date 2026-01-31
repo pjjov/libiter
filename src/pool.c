@@ -231,8 +231,8 @@ struct pool_iter {
     size_t index;
 };
 
-static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
-    if (!it || it == out)
+static int pool_iter_ref_fn(iter_t *it, void *out, size_t size, size_t skip) {
+    if (!it || it == out || size != sizeof(void *))
         return ITER_EINVAL;
 
     struct pool_iter *pit = ITER__CAST(it);
@@ -240,9 +240,6 @@ static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     const pool_t *pool = pit->pool;
     const struct bucket *bucket = pit->bucket;
     size_t i = pit->index;
-
-    if (size != pool->size)
-        return ITER_EINVAL;
 
     if (out)
         skip++;
@@ -275,8 +272,26 @@ static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     if (skip > 0)
         return ITER_ENODATA;
 
-    memcpy(out, (void *)value, pool->size);
+    *(void **)out = value;
     return ITER_OK;
+}
+
+static int pool_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
+    if (!it || it == out)
+        return ITER_EINVAL;
+
+    struct pool_iter *pit = ITER__CAST(it);
+    const pool_t *pool = pit->pool;
+    void *slot;
+
+    if (size != pool->size)
+        return ITER_EINVAL;
+
+    int fail = pool_iter_ref_fn(it, out ? &slot : NULL, sizeof(slot), skip);
+
+    if (!fail && out)
+        memcpy(out, slot, pool->size);
+    return fail;
 }
 
 iter_t *pool__iter(pool_t *pool, iter_t *out) {
@@ -286,6 +301,19 @@ iter_t *pool__iter(pool_t *pool, iter_t *out) {
     struct pool_iter *pit = ITER__CAST(out);
 
     out->call = &pool_iter_fn;
+    pit->pool = pool;
+    pit->bucket = pool->buffer;
+    pit->index = 0;
+    return out;
+}
+
+iter_t *pool__iter_ref(pool_t *pool, iter_t *out) {
+    if (!out || !pool)
+        return NULL;
+
+    struct pool_iter *pit = ITER__CAST(out);
+
+    out->call = &pool_iter_ref_fn;
     pit->pool = pool;
     pit->bucket = pool->buffer;
     pit->index = 0;
