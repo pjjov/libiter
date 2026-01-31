@@ -343,4 +343,17 @@ ITER_API int hashmap__filter(
 
 ITER_API iter_t *hashmap__iter(hashmap_t *map, iter_t *out);
 
+/** iter(V *) hashmap_iter_ref(hashmap(K, V) map, iter_t *out);
+
+    Initializes `out` as an iterator traversing
+    addreses of each value present in `map`.
+
+    > Inserting items or reserving space will invalidate the returned iterator.
+**/
+#define hashmap_iter_ref(m_map, m_out)                       \
+    ((iter(hashmap_value_ptr(m_map)))                        \
+         hashmap__iter_ref(hashmap_as_base(m_map), (m_out)))
+
+ITER_API iter_t *hashmap__iter_ref(hashmap_t *map, iter_t *out);
+
 #endif

@@ -524,8 +524,10 @@ struct hashmap_iter {
     size_t index;
 };
 
-static int hashmap_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
-    if (!it || it == out)
+static int hashmap_iter_ref_fn(
+    iter_t *it, void *out, size_t size, size_t skip
+) {
+    if (!it || it == out || size != sizeof(void *))
         return ITER_EINVAL;
 
     struct hashmap_iter *hit = ITER__CAST(it);
@@ -534,9 +536,6 @@ static int hashmap_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     const union hashmeta *bucket = hit->bucket;
     const union hashmeta *end = get_meta(map, bucket_count(map));
     size_t i = hit->index;
-
-    if (size != map->vsize)
-        return ITER_EINVAL;
 
     if (out)
         skip++;
@@ -560,11 +559,29 @@ static int hashmap_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
     hit->index = i;
 
     if (out && value) {
-        memcpy(out, value, map->vsize);
+        *(void **)out = value;
         return ITER_OK;
     }
 
     return out ? ITER_ENODATA : ITER_OK;
+}
+
+static int hashmap_iter_fn(iter_t *it, void *out, size_t size, size_t skip) {
+    if (!it || it == out)
+        return ITER_EINVAL;
+
+    struct hashmap_iter *hit = ITER__CAST(it);
+    const hashmap_t *map = hit->map;
+    void *slot;
+
+    if (size != map->vsize)
+        return ITER_EINVAL;
+
+    int fail = hashmap_iter_ref_fn(it, out ? &slot : NULL, sizeof(slot), skip);
+
+    if (!fail && out)
+        memcpy(out, slot, map->vsize);
+    return fail;
 }
 
 iter_t *hashmap__iter(hashmap_t *map, iter_t *out) {
@@ -574,6 +591,19 @@ iter_t *hashmap__iter(hashmap_t *map, iter_t *out) {
     struct hashmap_iter *hit = ITER__CAST(out);
 
     out->call = &hashmap_iter_fn;
+    hit->map = map;
+    hit->bucket = map->buffer;
+    hit->index = 0;
+    return out;
+}
+
+iter_t *hashmap__iter_ref(hashmap_t *map, iter_t *out) {
+    if (!map || !out)
+        return NULL;
+
+    struct hashmap_iter *hit = ITER__CAST(out);
+
+    out->call = &hashmap_iter_ref_fn;
     hit->map = map;
     hit->bucket = map->buffer;
     hit->index = 0;
