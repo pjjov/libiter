@@ -643,4 +643,18 @@ ITER_API void *vector__find(
 
 ITER_API iter_t *vector__iter(vector_t *vec, iter_t *out);
 
+/** iter(T *) vector_iter_ref(vector(T) vec, iter_t *out);
+
+    Initializes `out` as an iterator traversing
+    the addreses of each item present in `vec`.
+
+    > Resizing the vector will invalidate the returned iterator.
+**/
+#define vector_iter_ref(m_vec, m_out)                           \
+    ((iter(vector_type_ptr(m_vec)))vector__iter_ref(            \
+        vector_as_base(m_vec), (m_out), vector_type_size(m_vec) \
+    ))
+
+ITER_API iter_t *vector__iter_ref(vector_t *vec, iter_t *out, size_t size);
+
 #endif

@@ -156,4 +156,20 @@ ITER_API iter_t *iter__from_array(
     iter_t *out, const void *items, size_t length
 );
 
+/** iter(T *) iter_ref_from_array(iter_t *out, const T *items, size_t length);
+
+    Creates an iterator that traverses the references of each item in `items`.
+**/
+#define iter_ref_from_array(m_out, m_items, m_length)           \
+    ((iter(typeof((m_items))))iter__ref_from_array(             \
+        (m_out),                                                \
+        (m_items),                                              \
+        iter__checked_umulsize((m_length), sizeof(*(m_items))), \
+        sizeof(*(m_items))                                      \
+    ))
+
+ITER_API iter_t *iter__ref_from_array(
+    iter_t *out, const void *items, size_t length, size_t stride
+);
+
 #endif

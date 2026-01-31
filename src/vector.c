@@ -288,6 +288,11 @@ iter_t *vector__iter(vector_t *vec, iter_t *out) {
     return vec ? iter__from_array(out, vec->items, vec->length) : NULL;
 }
 
+iter_t *vector__iter_ref(vector_t *vec, iter_t *out, size_t size) {
+    return vec ? iter__ref_from_array(out, vec->items, vec->length, size)
+               : NULL;
+}
+
 vector_t *vector__from_iter(iter_t *it, allocator_t *allocator, size_t stride) {
     if (!it || stride == 0)
         return NULL;

@@ -307,6 +307,27 @@ int test_vector_iter(int seed, int rep) {
     return 0;
 }
 
+int test_vector_iter_ref(int seed, int rep) {
+    int *out, a[5] = { 1, 2, 3, 4, 5 };
+    iter_t storage;
+
+    vector(int) v = vector_from_array(a, 5, NULL);
+    pf_assert_not_null(v);
+
+    iter(int *) it = vector_iter_ref(v, &storage);
+    pf_assert_not_null(it);
+
+    for (size_t i = 0; i < vector_length(v); i++) {
+        pf_assert_ok(iter_next(it, &out));
+        pf_assert(out == vector_get(v, i));
+    }
+
+    pf_assert(ITER_ENODATA == iter_next(it, &out));
+
+    vector_destroy(v);
+    return 0;
+}
+
 int each_mul(void *item, void *user) {
     *(int *)item *= *(int *)user;
     return 0;
@@ -399,6 +420,7 @@ pf_test suite_vector[] = {
     { test_vector_swap_remove, "/vector/swap_remove", 1 },
     { test_vector_swap, "/vector/swap", 1 },
     { test_vector_iter, "/vector/iter", 1 },
+    { test_vector_iter_ref, "/vector/iter_ref", 1 },
     { test_vector_each, "/vector/each", 1 },
     { test_vector_filter, "/vector/filter", 1 },
     { test_vector_map, "/vector/map", 1 },
