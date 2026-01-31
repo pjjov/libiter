@@ -8,6 +8,7 @@
 #include <allocator.h>
 #include <iter/error.h>
 #include <iter/iter.h>
+#include <pf_macro.h>
 #include <string.h>
 
 #undef ITER_API
@@ -17,6 +18,8 @@
 extern allocator_t *libiter_allocator;
 
 #define VECTOR_GROWTH(old, req) ((old + req) * 1.5)
+
+#define SORT_BUFFER_SIZE 4096
 
 vector_t *vector__init(vector_t *vec, allocator_t *allocator) {
     if (!allocator)
@@ -308,4 +311,98 @@ vector_t *vector__from_iter(iter_t *it, allocator_t *allocator, size_t stride) {
     }
 
     return out;
+}
+
+struct sorter {
+    void *A, *B;
+    size_t count, size;
+    size_t left, right, end;
+    vector_compare_fn *compare;
+};
+
+static int mergesort_compare(struct sorter *s, size_t i, size_t j) {
+    if (i >= s->right || j >= s->end)
+        return i < s->right ? -1 : 0;
+
+    return s->compare(
+        PF_OFFSET(s->A, i * s->size), PF_OFFSET(s->A, j * s->size), s->size
+    );
+}
+
+static void mergesort_copy(struct sorter *s, size_t dst, size_t src) {
+    memcpy(
+        PF_OFFSET(s->B, dst * s->size), PF_OFFSET(s->A, src * s->size), s->size
+    );
+}
+
+static void mergesort_merge(struct sorter *s) {
+    size_t i = s->left, j = s->right;
+
+    for (size_t k = s->left; k < s->end; k++) {
+        if (mergesort_compare(s, i, j) < 0) {
+            mergesort_copy(s, k, i);
+            i = i + 1;
+        } else {
+            mergesort_copy(s, k, j);
+            j = j + 1;
+        }
+    }
+}
+
+static void *mergesort(struct sorter *s) {
+    for (size_t w = 1; w < s->count; w *= 2) {
+        for (size_t i = 0; i < s->count; i = i + 2 * w) {
+            s->left = i;
+            s->right = PF_MIN(i + w, s->count);
+            s->end = PF_MIN(i + 2 * w, s->count);
+            mergesort_merge(s);
+        }
+
+        PF_SWAP(s->A, s->B);
+    }
+
+    return s->A;
+}
+
+int vector__sort(vector_t *vec, vector_compare_fn *compare, size_t size) {
+    if (!vec || size == 0 || !compare)
+        return ITER_EINVAL;
+
+    if (vec->length < size * 2)
+        return ITER_OK;
+
+    char buffer[SORT_BUFFER_SIZE];
+
+    struct sorter s;
+    s.A = vec->items;
+    s.B = buffer;
+    s.count = vec->length / size;
+    s.size = size;
+    s.compare = compare;
+
+    if (vec->length > SORT_BUFFER_SIZE)
+        s.B = allocate(libiter_allocator, vec->length);
+
+    if (s.B == NULL)
+        return ITER_ENOMEM;
+
+    void *out = mergesort(&s);
+
+    if (out != vec->items)
+        memcpy(vec->items, out, vec->length);
+
+    if (vec->length > SORT_BUFFER_SIZE)
+        deallocate(libiter_allocator, s.B, vec->length);
+    return ITER_OK;
+}
+
+int vector__is_sorted(vector_t *v, vector_compare_fn *compare, size_t size) {
+    if (!v || size == 0 || !compare)
+        return ITER_EINVAL;
+
+    for (size_t i = size; i + size <= v->length; i += size)
+        if (0 < compare(vector__slot(v, i - size), vector__slot(v, i), size))
+            return ITER_FALSE;
+
+    return ITER_TRUE;
 }

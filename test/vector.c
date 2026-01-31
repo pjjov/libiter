@@ -403,6 +403,28 @@ int test_vector_find(int seed, int rep) {
     return 0;
 }
 
+static int compare_int(const void *lhs, const void *rhs, size_t size) {
+    return *(const int *)lhs - *(const int *)rhs;
+}
+
+int test_vector_sort(int seed, int rep) {
+    int a[] = { 9, 0, 1, 2, 3, 8, 4, 7, 6, 5 };
+    vector(int) v = vector_wrap(a, 10, NULL);
+    pf_assert_not_null(v);
+
+    pf_assert_ok(vector_sort(v, compare_int));
+
+    for (size_t i = 0; i < 10; i++)
+        pf_assert(i == *vector_get(v, i));
+
+    pf_assert(ITER_TRUE == vector_is_sorted(v, compare_int));
+
+    pf_assert(ITER_EINVAL == vector_sort(v, NULL));
+    pf_assert(ITER_EINVAL == vector_is_sorted(v, NULL));
+    vector_destroy(v);
+    return 0;
+}
+
 pf_test suite_vector[] = {
     { test_vector_init, "/vector/init", 1 },
     { test_vector_create, "/vector/create", 1 },
@@ -425,5 +447,6 @@ pf_test suite_vector[] = {
     { test_vector_filter, "/vector/filter", 1 },
     { test_vector_map, "/vector/map", 1 },
     { test_vector_find, "/vector/find", 1 },
+    { test_vector_sort, "/vector/sort", 1 },
     { 0 },
 };

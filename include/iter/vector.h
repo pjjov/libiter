@@ -618,13 +618,13 @@ ITER_API int vector__map(
     typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t s);
     ```
 **/
-#define vector_find(m_vec, m_item, m_cmp) \
-    vector__find(                         \
-        vector_as_base(m_vec),            \
-        vector_check_type(m_vec, m_item), \
-        vector_type_size(m_vec),          \
-        (m_cmp)                           \
-    )
+#define vector_find(m_vec, m_item, m_cmp)  \
+    ((vector_type_ptr(m_vec))vector__find( \
+        vector_as_base(m_vec),             \
+        vector_check_type(m_vec, m_item),  \
+        vector_type_size(m_vec),           \
+        (m_cmp)                            \
+    ))
 
 typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t size);
 
@@ -656,5 +656,50 @@ ITER_API iter_t *vector__iter(vector_t *vec, iter_t *out);
     ))
 
 ITER_API iter_t *vector__iter_ref(vector_t *vec, iter_t *out, size_t size);
+
+/** int vector_sort(vector(T) vec, vector_compare_fn *cmp);
+
+    Sorts items inside `vec` according to the provided comparison function.
+    This function always uses a stable sorting algorithm, currently mergesort.
+
+    ```c
+    typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t s);
+    ```
+
+    Return value of function `cmp` is treated like `memcmp`:
+    - a negative number means `lhs` comes before `rhs`.
+    - number 0 means `lhs` and `rhs` are equal.
+    - a positive number means `lhs` comes after `rhs`.
+
+    Possible error codes: ITER_EINVAL, ITER_ENOMEM.
+**/
+#define vector_sort(m_vec, m_cmp)                                         \
+    vector__sort(vector_as_base(m_vec), (m_cmp), vector_type_size(m_vec))
+
+ITER_API int vector__sort(
+    vector_t *vec, vector_compare_fn *compare, size_t size
+);
+
+/** int vector_is_sorted(vector(T) vec, vector_compare_fn *cmp);
+
+    Checks if items inside `vec` are sorted according to the `cmp` function.
+
+    ```c
+    typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t s);
+    ```
+
+    Return value of function `cmp` is treated like `memcmp`:
+    - a negative number means `lhs` comes before `rhs`.
+    - number 0 means `lhs` and `rhs` are equal.
+    - a positive number means `lhs` comes after `rhs`.
+
+    Possible error codes: ITER_EINVAL.
+**/
+#define vector_is_sorted(m_vec, m_cmp)                                         \
+    vector__is_sorted(vector_as_base(m_vec), (m_cmp), vector_type_size(m_vec))
+
+ITER_API int vector__is_sorted(
+    vector_t *vec, vector_compare_fn *compare, size_t size
+);
 
 #endif
