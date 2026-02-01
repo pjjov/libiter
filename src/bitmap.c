@@ -196,6 +196,98 @@ int bitmap_toggle(bitmap_t *map, size_t i) {
     return ITER_OK;
 }
 
+int bitmap_getn(bitmap_t *map, char *out, size_t i, size_t count) {
+    if (!map || !out)
+        return ITER_EINVAL;
+
+    if (!map->allocator)
+        i += map->as.offset;
+
+    if (i + count > map->length)
+        return ITER_EINVAL;
+
+    bitmap_int_t *slot, mask;
+    size_t written = 0;
+
+    while (written < count) {
+        if (!(slot = bitmap_slot(map, i + written, &mask)))
+            return ITER_EINVAL;
+
+        size_t shift = pf_ctz_bitmap(mask);
+        mask = (mask >> shift) & 0xFF;
+
+        out[written / 8] = (*slot >> shift) & mask;
+        written += pf_popcount_bitmap(mask);
+    }
+
+    return ITER_OK;
+}
+
+int bitmap_setn(bitmap_t *map, int value, size_t i, size_t count) {
+    if (!map || i + count > map->length)
+        return ITER_EINVAL;
+
+    if (!map->allocator)
+        i += map->as.offset;
+
+    if (i + count > map->length)
+        return ITER_EINVAL;
+
+    bitmap_int_t *slot, mask;
+    size_t written = 0;
+
+    while (written < count) {
+        if (!(slot = bitmap_slot(map, i + written, &mask)))
+            return ITER_EINVAL;
+
+        size_t pop = pf_popcount_bitmap(mask);
+        if (pop > count - written) {
+            size_t shift = pf_ctz_bitmap(mask);
+            mask &= MASK(shift + (pop - (count - written)));
+            pop = count - written;
+        }
+
+        if (value)
+            *slot |= BITMAP_INT_MAX & mask;
+        else
+            *slot &= BITMAP_INT_MAX & (~mask);
+        written += pop;
+    }
+
+    return ITER_OK;
+}
+
+int bitmap_togglen(bitmap_t *map, size_t i, size_t count) {
+    if (!map || i + count > map->length)
+        return ITER_EINVAL;
+
+    if (!map->allocator)
+        i += map->as.offset;
+
+    if (i + count > map->length)
+        return ITER_EINVAL;
+
+    bitmap_int_t *slot, mask;
+    size_t written = 0;
+
+    while (written < count) {
+        if (!(slot = bitmap_slot(map, i + written, &mask)))
+            return ITER_EINVAL;
+
+        size_t pop = pf_popcount_bitmap(mask);
+        if (pop > count - written) {
+            size_t shift = pf_ctz_bitmap(mask);
+            mask &= MASK(shift + (pop - (count - written)));
+            pop = count - written;
+        }
+
+        *slot = (~(*slot) & mask) | ((*slot) & ~mask);
+        written += pop;
+    }
+
+    return ITER_OK;
+}
+
 int bitmap_inv(bitmap_t *map) {
     if (!map)
         return ITER_EINVAL;

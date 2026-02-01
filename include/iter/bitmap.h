@@ -72,6 +72,10 @@ ITER_API int bitmap_get(bitmap_t *map, size_t i);
 ITER_API int bitmap_set(bitmap_t *map, size_t i, int value);
 ITER_API int bitmap_toggle(bitmap_t *map, size_t i);
 
+ITER_API int bitmap_getn(bitmap_t *map, char *out, size_t i, size_t count);
+ITER_API int bitmap_setn(bitmap_t *map, int value, size_t i, size_t count);
+ITER_API int bitmap_togglen(bitmap_t *map, size_t i, size_t count);
+
 ITER_API int bitmap_inv(bitmap_t *map);
 ITER_API int bitmap_or(bitmap_t *dst, bitmap_t *src);
 ITER_API int bitmap_and(bitmap_t *dst, bitmap_t *src);
