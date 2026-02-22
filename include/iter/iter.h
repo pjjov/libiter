@@ -20,20 +20,27 @@
     #define ITER_INLINE static inline
 #endif
 
-#define ITER__CAST(it) ((void *)(&(it)->buffer))
+/** ## NAME
 
-/** ## iter(T) - Iterator interface
+    `iter(T)` - generic iterator interface
+
+    ## DESCRIPTION
 
     `iter(T)` is an interface for traversing items of containers.
     With iterators, you can use items without knowing the details
     about their containers.
+
+    [TOC]
+
+    ## REFERENCE
 **/
+
+#define ITER__CAST(it) ((void *)(&(it)->buffer))
+
 #define iter(T) generic_container(iter_t, size_t, T)
 typedef struct iter_t iter_t;
 
-/** typedef int(iter_fn)(iter_t *self, void *out, size_t size, size_t skip);
-
-    This function callback is used to implement custom iterators.
+/** This function callback is used to implement custom iterators.
 
     The function should return the item, that is `size` bytes in size, after
     skipping `skip` items. If no items are found at the time of calling,
@@ -44,9 +51,7 @@ typedef struct iter_t iter_t;
 **/
 typedef int(iter_fn)(iter_t *iter, void *out, size_t size, size_t skip);
 
-/** struct iter_t;
-
-    This structure is used as an interface for traversing items of containers.
+/** This structure is used as an interface for traversing items of containers.
     Every member other than `call` is not used by the interface; they are
     reserved for use by the iterator's callback and should be treated as
     private variables.
@@ -76,11 +81,13 @@ PF_IMPL_OVERFLOW(PF_OVERFLOW_SIZE, size_t, u, size, iter_)
     #define iter__checked_umulsize(m_l, m_r) ((m_l) * (m_r))
 #endif
 
+/** nanodoc.inline-decl  on **/
+
 ITER_INLINE int iter__call(iter_t *it, void *out, size_t size, size_t skip) {
     return it && it->call ? it->call(it, out, size, skip) : ITER_EINVAL;
 }
 
-/** int iter_next(iter(T) it, T *out)
+/** int iter_next(iter(T) it, T *out);
 
     Advances the iterator and puts the next value in `out`, if not `NULL`.
     Possible error codes: ITER_EINVAL, ITER_ENODATA.
@@ -93,7 +100,7 @@ ITER_INLINE int iter__call(iter_t *it, void *out, size_t size, size_t skip) {
         0                               \
     )
 
-/** int iter_nth(iter(T) it, T *out, size_t skip)
+/** int iter_nth(iter(T) it, T *out, size_t skip);
 
     Skips the first `skip` items and puts the next value in `out`,
     if not `NULL`. If `skip == 0` it is equivalent to `iter_next`.

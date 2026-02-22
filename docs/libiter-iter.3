@@ -1,0 +1,176 @@
+.\" libiter - Generic container and iterator library for C.
+.\"
+.\" SPDX-FileCopyrightText: 2026 Предраг Јовановић
+.\" SPDX-License-Identifier: Apache-2.0
+.TH libiter-iter 3 "February 22, 2026" libiter 
+.SH NAME
+
+.PP
+\fBiter(T)\fR \- generic iterator interface
+
+.SH DESCRIPTION
+
+.PP
+\fBiter(T)\fR is an interface for traversing items of containers\&. With iterators, you can use items without knowing the details about their containers\&.
+
+.PP
+.SH SYNOPSIS
+.P
+.nf
+typedef int(iter_fn)(iter_t *iter, void *out, size_t size, size_t skip);
+struct iter_t 
+int iter_next(iter(T) it, T *out)
+int iter_nth(iter(T) it, T *out, size_t skip)
+int iter_advance(iter(T) it, size_t count)
+void iter_free(iter(T) it)
+size_t iter_to_array(iter(T) it, T *out, size_t length)
+iter(T) iter_from_array(iter_t *out, const T *items, size_t length)
+iter(T *) iter_ref_from_array(iter_t *out, const T *items, size_t length)
+.fi
+
+
+.SH REFERENCE
+
+.SS iter_fn
+
+.nf
+.RS
+typedef int(iter_fn)(iter_t *iter, void *out, size_t size, size_t skip);
+.RE
+.fi
+
+.PP
+This function callback is used to implement custom iterators\&.
+
+.PP
+The function should return the item, that is \fBsize\fR bytes in size, after skipping \fBskip\fR items\&. If no items are found at the time of calling, ITER_ENODATA should be returned\&. The iterator can resume iteration even if the previous call returned ITER_ENODATA\&.
+
+.PP
+When \fBout\fR and \fBself\fR are equal, the iterator should free it's resources\&.
+
+.SS 
+
+.nf
+.RS
+struct iter_t {
+    iter_fn *call;
+    union {
+        char _size[sizeof(void *) * 3];
+        void *_alignment;
+    } buffer;
+};
+.RE
+.fi
+
+.PP
+This structure is used as an interface for traversing items of containers\&. Every member other than \fBcall\fR is not used by the interface; they are reserved for use by the iterator's callback and should be treated as private variables\&.
+
+.SS iter_next
+
+.nf
+.RS
+int iter_next(iter(T) it, T *out)
+.RE
+.fi
+
+.PP
+Advances the iterator and puts the next value in \fBout\fR, if not \fBNULL\fR\&. Possible error codes: ITER_EINVAL, ITER_ENODATA\&.
+
+.SS iter_nth
+
+.nf
+.RS
+int iter_nth(iter(T) it, T *out, size_t skip)
+.RE
+.fi
+
+.PP
+Skips the first \fBskip\fR items and puts the next value in \fBout\fR, if not \fBNULL\fR\&. If \fBskip == 0\fR it is equivalent to \fBiter_next\fR\&. Possible error codes: ITER_EINVAL, ITER_ENODATA\&.
+
+.SS iter_advance
+
+.nf
+.RS
+int iter_advance(iter(T) it, size_t count)
+.RE
+.fi
+
+.PP
+Advances the iterator \fBcount\fR times\&. If \fBcount\fR is zero, iterator won't be advanced, but might be updated, depending on it's implementation\&. Possible error codes: ITER_EINVAL, ITER_ENODATA\&.
+
+.SS iter_free
+
+.nf
+.RS
+void iter_free(iter(T) it)
+.RE
+.fi
+
+.PP
+Frees all resources used by \fBit\fR, if the iterator has not been exhausted\&.
+
+.SS iter_to_array
+
+.nf
+.RS
+size_t iter_to_array(iter(T) it, T *out, size_t length)
+.RE
+.fi
+
+.PP
+Traverser the iterator \fBit\fR and inserts the items into \fBout\fR, until \fBlength\fR items have been collected or the iterator has been exhausted\&.
+
+.SS iter_from_array
+
+.nf
+.RS
+iter(T) iter_from_array(iter_t *out, const T *items, size_t length)
+.RE
+.fi
+
+.PP
+Creates an iterator that traverses the items of the provided array \fBitems\fR\&.
+
+.SS iter_ref_from_array
+
+.nf
+.RS
+iter(T *) iter_ref_from_array(iter_t *out, const T *items, size_t length)
+.RE
+.fi
+
+.PP
+Creates an iterator that traverses the references of each item in \fBitems\fR\&.
+
+
+.SH ERRORS
+
+For most functions that return an \fBint\fR type, \fB0\fR indicates success, while negated values of POSIX error codes indicate failure.
+
+You should interpret returned values as:
+
+.IP \(bu 2
+\fBITER_OK\fR - Function call succeeded.
+.IP \(bu 2
+\fBITER_EINVAL\fR - Invalid parameter values passed.
+.IP \(bu 2
+\fBITER_ENOMEM\fR - Allocation error occured, e.g. out of memory.
+.IP \(bu 2
+\fBITER_EEXIST\fR - Key or value already exists.
+.IP \(bu 2
+\fBITER_ENOENT\fR - Key or value doesn't exist.
+.IP \(bu 2
+\fBITER_ENODATA\fR - No more items available.
+.IP \(bu 2
+\fBITER_ENOSYS\fR - Feature is not available.
+
+Alongside these, boolean values \fBITER_TRUE\fR and \fBITER_FALSE\fR are defined.
+
+.SH SEE ALSO
+.BR libiter-bitmap (3),
+.BR libiter-hashmap (3),
+.BR libiter-iter (3),
+.BR libiter-pool (3),
+.BR libiter-vector (3).
+.SH AUTHOR
+Copyright (C) 2026 Предраг Јовановић
