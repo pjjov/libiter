@@ -1,0 +1,703 @@
+.\" libiter - Generic container and iterator library for C.
+.\"
+.\" SPDX-FileCopyrightText: 2026 Предраг Јовановић
+.\" SPDX-License-Identifier: Apache-2.0
+.TH libiter-vector 3 "February 22, 2026" libiter 
+.SH NAME
+
+.PP
+\fBvector(T)\fR \- generic growable arrays
+
+.SH DESCRIPTION
+
+.PP
+vector(T) is a growable array like \fBstd::vector\fR from C++ and \fBVec\fR from Rust\&. The type \fBT\fR must have a size larger than 0, i\&.e\&. not \fBvoid\fR\&.
+
+.PP
+Items are stored sequentially and, because of resizing, their memory address might be changed (usually by functions that can return ITER_ENOMEM)\&. This means that you should never store the pointers, but rather indexes of items\&.
+
+.PP
+Unlike other containers, the alignment of type \fBT\fR is handled by the allocator\&. To support over\-aligned types, like SIMD vectors, you should use \fBvector_with_alignment\fR\&.
+
+.SS Alignment
+
+.PP
+Unlike other containers, to keep the implementation of vectors simple, the alignment of types is not explicitly handled and can cause problems for over\-aligned types, like SIMD vectors\&.
+
+.PP
+However, you can still use vectors in these situations if you handle the alignment correctly in a custom allocator that is passed to the vector, e\&.g\&. you can use \fBallocator_aligned\&.h\fR by passing a minimum alignment\&.
+
+.PP
+.SH SYNOPSIS
+.P
+.nf
+vector(T) vector_init(type T, vector_t *vec, allocator_t *allocator)
+void vector_free(vector_t *vec)
+vector(T) vector_create(type T, allocator_t *allocator)
+vector(T) vector_with_capacity(type T, size_t cap, allocator_t *allocator)
+vector(T) vector_from_array(T *array, size_t len, allocator_t *allocator)
+vector(T) vector_from_iter(iter(T) it, allocator_t *allocator)
+vector(T) vector_wrap(T *array, size_t length, allocator_t *allocator)
+vector(T) vector_clone(vector(T) vec, allocator_t *allocator)
+T *vector_unwrap(vector(T) vec)
+void vector_destroy(vector(T) vec)
+T *vector_slot(vector(T) vec, size_t i)
+T *vector_get(vector(T) vec, size_t i)
+size_t vector_index(vector(T) vec, T *item)
+T *vector_items(vector(T) vec)
+T *vector_end(vector(T) vec)
+size_t vector_length(vector(T) vec)
+size_t vector_capacity(vector(T) vec)
+size_t vector_bytes_used(vector(T) vec)
+size_t vector_bytes_reserved(vector(T) vec)
+allocator_t *vector_allocator(vector(T) vec)
+int vector_is_empty(vector(T) vec)
+void vector_clear(vector(T) vec)
+int vector_set_length(vector(T) vec, size_t length)
+int vector_resize(vector(T) vec, size_t capacity)
+int vector_reserve(vector(T) vec, size_t count)
+int vector_shrink(vector(T) vec)
+int vector_insert(vector(T) vec, T *items, size_t i, size_t count)
+int vector_push(vector(T) vec, T *items, size_t count)
+int vector_insert_at(vector_t *vec, T *items, T *at, size_t size)
+int vector_try_insert(vector(T) vec, T *items, size_t i, size_t count)
+int vector_remove(vector(T) vec, size_t i, size_t count)
+int vector_pop(vector(T) vec, size_t count)
+int vector_remove_at(vector(T) vec, T *at, size_t count)
+int vector_swap_remove(vector(T) vec, size_t i, size_t count)
+int vector_swap(vector(T) vec, size_t i, size_t j, size_t count)
+int vector_each(vector(T) vec, vector_each_fn *each, void *user)
+int vector_filter(vector(T) vec, vector_each_fn *filter, void *user)
+int vector_map(vector(D) dst, vector(S), src, vector_map_fn *map, void *user)
+T *vector_find(vector(T) vec, const T *item, vector_compare_fn *cmp)
+iter(T) vector_iter(vector(T) vec, iter_t *out)
+iter(T *) vector_iter_ref(vector(T) vec, iter_t *out)
+int vector_sort(vector(T) vec, vector_compare_fn *cmp)
+int vector_is_sorted(vector(T) vec, vector_compare_fn *cmp)
+.fi
+
+
+.SH REFERENCE
+
+.SS vector_init
+
+.nf
+.RS
+vector(T) vector_init(type T, vector_t *vec, allocator_t *allocator)
+.RE
+.fi
+
+.PP
+Initializes \fBvec\fR and casts it to \fBvector(T)\fR\&. With this function, you can allocate the vector object onto the stack\&. If \fBallocator\fR is \fBNULL\fR, the default one will be used instead\&. Returns \fBNULL\fR if unsuccessful\&.
+
+.PP
+You should use \fBvector_free\fR to free the returned vector's resources instead of \fBvector_destroy\fR when this function is used\&.
+
+
+.SS vector_free
+
+.nf
+.RS
+void vector_free(vector_t *vec)
+.RE
+.fi
+
+.PP
+Frees all resources used by \fBvec\fR, which was initialized by \fBvector_init\fR beforehand, if it's not \fBNULL\fR\&.
+
+.SS vector_create
+
+.nf
+.RS
+vector(T) vector_create(type T, allocator_t *allocator)
+.RE
+.fi
+
+.PP
+Creates a new instance of \fBvector(T)\fR, allocated with \fBallocator\fR\&. Returns \fBNULL\fR if out of memory or \fBsizeof(T) == 0\fR\&.
+
+.SS vector_with_capacity
+
+.nf
+.RS
+vector(T) vector_with_capacity(type T, size_t cap, allocator_t *allocator)
+.RE
+.fi
+
+.PP
+Creates a new instance of \fBvector(T)\fR, allocated with \fBallocator\fR, and reserves space to fit least \fBcap\fR items\&. Returns \fBNULL\fR if out of memory\&.
+
+.PP
+If \fBallocator\fR is \fBNULL\fR, the default one will be used\&.
+
+
+.SS vector_from_array
+
+.nf
+.RS
+vector(T) vector_from_array(T *array, size_t len, allocator_t *allocator)
+.RE
+.fi
+
+.PP
+Creates a new vector with type \fBT\fR and copies \fBlen\fR items from \fBarray\fR\&. Unlike \fBvector_wrap\fR, this function copies \fBarray\fR into a new buffer\&. Returns \fBNULL\fR if out of memory or \fBsizeof(T) == 0\fR\&.
+
+.SS vector_from_iter
+
+.nf
+.RS
+vector(T) vector_from_iter(iter(T) it, allocator_t *allocator)
+.RE
+.fi
+
+.PP
+Creates a new vector with type \fBT\fR and inserts all items from \fBit\fR\&. Returns \fBNULL\fR if out of memory or \fBsizeof(T) == 0\fR\&.
+
+.SS vector_wrap
+
+.nf
+.RS
+vector(T) vector_wrap(T *array, size_t length, allocator_t *allocator)
+.RE
+.fi
+
+.PP
+Creates a new instance of \fBvector(T)\fR and uses \fBarray\fR as it's buffer\&. Unlike \fBvector_from_array\fR, this function takes ownership of \fBarray\fR, managing it's lifetime with \fBallocator\fR\&. If \fBallocator\fR is \fBNULL\fR, the array will not be resized or freed\&.
+
+.PP
+Returns \fBNULL\fR if out of memory or \fBsizeof(T) == 0\fR\&.
+
+.SS vector_clone
+
+.nf
+.RS
+vector(T) vector_clone(vector(T) vec, allocator_t *allocator)
+.RE
+.fi
+
+.PP
+Creates a new \fBvector(T)\fR, using \fBallocator\fR, and copies all items from \fBvec\fR\&. Returns \fBNULL\fR if out of memory or if \fBvec\fR is empty\&.
+
+.SS vector_unwrap
+
+.nf
+.RS
+T *vector_unwrap(vector(T) vec)
+.RE
+.fi
+
+.PP
+Destroys the \fBvector\fR without deallocating it's items, returning the array instead\&. If vector's capacity is 0, \fBNULL\fR is returned\&.
+
+.SS vector_destroy
+
+.nf
+.RS
+void vector_destroy(vector(T) vec)
+.RE
+.fi
+
+.PP
+Frees all resources used by \fBvector\fR if it's not \fBNULL\fR\&.
+
+.SS vector_slot
+
+.nf
+.RS
+T *vector_slot(vector(T) vec, size_t i)
+.RE
+.fi
+
+.PP
+Returns pointer to the item slot at index \fBi\fR or \fBNULL\fR if out of bounds\&.
+
+.PP
+This pointer is valid until \fBvector\fR is resized or destroyed\&.
+
+
+.SS vector_get
+
+.nf
+.RS
+T *vector_get(vector(T) vec, size_t i)
+.RE
+.fi
+
+.PP
+Returns pointer to the item at index \fBi\fR or \fBNULL\fR if out of bounds\&.
+
+.PP
+This pointer is valid until \fBvector\fR is resized or destroyed\&.
+
+
+.SS vector_index
+
+.nf
+.RS
+size_t vector_index(vector(T) vec, T *item)
+.RE
+.fi
+
+.PP
+Returns the index of the item pointed at by \fBitem\fR\&. Possible error codes: ITER_EINVAL\&.
+
+.SS vector_items
+
+.nf
+.RS
+T *vector_items(vector(T) vec)
+.RE
+.fi
+
+.PP
+Returns pointer to the internal buffer used by \fBvector\fR or \fBNULL\fR if \fBvector\fR is \fBNULL\fR or it's capacity is zero\&.
+
+.PP
+This pointer is valid until \fBvector\fR is resized or destroyed\&.
+
+
+.SS vector_end
+
+.nf
+.RS
+T *vector_end(vector(T) vec)
+.RE
+.fi
+
+.PP
+Returns pointer to the end of the buffer used by \fBvector\fR\&. or \fBNULL\fR if \fBvector\fR is \fBNULL\fR or it's capacity is zero\&.
+
+.PP
+This pointer is valid until \fBvector\fR is resized or destroyed\&.
+
+
+.SS vector_length
+
+.nf
+.RS
+size_t vector_length(vector(T) vec)
+.RE
+.fi
+
+.PP
+Returns number of items present in \fBvec\fR or 0 if \fBvec\fR is \fBNULL\fR\&.
+
+.SS vector_capacity
+
+.nf
+.RS
+size_t vector_capacity(vector(T) vec)
+.RE
+.fi
+
+.PP
+Returns number of items for which space is reserved in \fBvec\fR\&.
+
+.SS vector_bytes_used
+
+.nf
+.RS
+size_t vector_bytes_used(vector(T) vec)
+.RE
+.fi
+
+.PP
+Returns number of bytes used by items present in \fBvector\fR\&.
+
+.SS vector_bytes_reserved
+
+.nf
+.RS
+size_t vector_bytes_reserved(vector(T) vec)
+.RE
+.fi
+
+.PP
+Returns number of bytes reserved for items in \fBvector\fR\&.
+
+.SS vector_allocator
+
+.nf
+.RS
+allocator_t *vector_allocator(vector(T) vec)
+.RE
+.fi
+
+.PP
+Returns the allocator used by \fBvec\fR or \fBNULL\fR if \fBvec\fR was created with \fBvector_wrap\fR\&.
+
+.SS vector_is_empty
+
+.nf
+.RS
+int vector_is_empty(vector(T) vec)
+.RE
+.fi
+
+.PP
+Returns a non\-zero value if \fBvec\fR has no items\&.
+
+.SS vector_clear
+
+.nf
+.RS
+void vector_clear(vector(T) vec)
+.RE
+.fi
+
+.PP
+Removes all items from \fBvec\fR, if it's not \fBNULL\fR\&.
+
+.SS vector_set_length
+
+.nf
+.RS
+int vector_set_length(vector(T) vec, size_t length)
+.RE
+.fi
+
+.PP
+Forces the length of \fBvec\fR to the value of \fBlength\fR\&. \fBlength\fR must be less than or equal to \fBvec\fR's capacity\&. Possible error codes: \fBITER_EINVAL\fR\&.
+
+.SS vector_resize
+
+.nf
+.RS
+int vector_resize(vector(T) vec, size_t capacity)
+.RE
+.fi
+
+.PP
+Resizes vector's buffer to fit \fBcapacity\fR items\&. If the length of \fBvec\fR is larger than \fBcapacity\fR, excess items will be removed\&.
+
+.PP
+It's better to use \fBvector_reserve\fR for reserving space\&.
+
+
+.PP
+Possible error codes: \fBITER_EINVAL\fR, \fBITER_ENOMEM\fR\&.
+
+.SS vector_reserve
+
+.nf
+.RS
+int vector_reserve(vector(T) vec, size_t count)
+.RE
+.fi
+
+.PP
+Reserves space to fit at least \fBcount\fR more items in \fBvec\fR\&. This function will not resize the buffer if space is already reserved\&.
+
+.PP
+Possible error codes: ITER_EINVAL, ITER_ENOMEM\&.
+
+.SS vector_shrink
+
+.nf
+.RS
+int vector_shrink(vector(T) vec)
+.RE
+.fi
+
+.PP
+Resizes internal buffer to fit least space possible\&. Possible error codes: ITER_EINVAL, ITER_ENOMEM\&.
+
+.SS vector_insert
+
+.nf
+.RS
+int vector_insert(vector(T) vec, T *items, size_t i, size_t count)
+.RE
+.fi
+
+.PP
+Inserts \fBcount\fR items from \fBitems\fR starting at index \fBi\fR\&. \fBcount\fR must not be zero and \fBi\fR must not be larger than length\&.
+
+.PP
+Possible error codes: ITER_EINVAL, ITER_ENOMEM\&.
+
+.SS vector_push
+
+.nf
+.RS
+int vector_push(vector(T) vec, T *items, size_t count)
+.RE
+.fi
+
+.PP
+Inserts \fBcount\fR items from \fBitems\fR, starting from the end of \fBvector\fR\&. Possible error codes: ITER_EINVAL, ITER_ENOMEM\&.
+
+.SS vector_insert_at
+
+.nf
+.RS
+int vector_insert_at(vector_t *vec, T *items, T *at, size_t size)
+.RE
+.fi
+
+.PP
+Unlike \fBvector_insert\fR, this function inserts at the item pointed by \fBat\fR\&. Possible error codes: ITER_EINVAL, ITER_ENOMEM\&.
+
+.SS vector_try_insert
+
+.nf
+.RS
+int vector_try_insert(vector(T) vec, T *items, size_t i, size_t count)
+.RE
+.fi
+
+.PP
+Attempts to insert \fBcount\fR items from \fBitems\fR starting at index \fBi\fR without reserving additional space, i\&.e\&. without resizing if out of memory\&.
+
+.PP
+Possible error codes: ITER_EINVAL, ITER_ENOMEM\&.
+
+.SS vector_remove
+
+.nf
+.RS
+int vector_remove(vector(T) vec, size_t i, size_t count)
+.RE
+.fi
+
+.PP
+Removes \fBcount\fR items from \fBvec\fR starting from the index \fBi\fR\&. Possible error codes: ITER_EINVAL\&.
+
+.SS vector_pop
+
+.nf
+.RS
+int vector_pop(vector(T) vec, size_t count)
+.RE
+.fi
+
+.PP
+Removes \fBcount\fR items from the end of the \fBvec\fR\&. Possible error codes: ITER_EINVAL\&.
+
+.SS vector_remove_at
+
+.nf
+.RS
+int vector_remove_at(vector(T) vec, T *at, size_t count)
+.RE
+.fi
+
+.PP
+Removes \fBcount\fR items at the location pointed by \fBat\fR\&. Possible error codes: ITER_EINVAL\&.
+
+.SS vector_swap_remove
+
+.nf
+.RS
+int vector_swap_remove(vector(T) vec, size_t i, size_t count)
+.RE
+.fi
+
+.PP
+Removes \fBcount\fR items starting at index \fBi\fR by moving last \fBcount\fR items in their place\&. Possible error codes: ITER_EINVAL\&.
+
+.PP
+While faster than \fBremove\fR, this function doesn't preserve item order\&.
+
+
+.SS vector_swap
+
+.nf
+.RS
+int vector_swap(vector(T) vec, size_t i, size_t j, size_t count)
+.RE
+.fi
+
+.PP
+Swaps \fBcount\fR items starting at index \fBi\fR with items at index \fBj\fR\&. Possible error codes: ITER_EINVAL, ITER_ENOMEM\&.
+
+.SS vector_each
+
+.nf
+.RS
+int vector_each(vector(T) vec, vector_each_fn *each, void *user)
+.RE
+.fi
+
+.PP
+Calls the \fBeach\fR callback for each item present in \fBvec\fR, stopping if a non\-zero value is returned by one of the calls\&.
+
+.nf
+.RS
+typedef int(vector_each_fn)(void *item, void *user);
+.RE
+.fi
+
+.PP
+Possible error codes: ITER_EINVAL, ITER_EINTR\&.
+
+.SS vector_filter
+
+.nf
+.RS
+int vector_filter(vector(T) vec, vector_each_fn *filter, void *user)
+.RE
+.fi
+
+.PP
+Removes each item in \fBvec\fR for which the \fBfilter\fR callback returns a \fB0\fR\&. Possible error codes: ITER_EINVAL\&.
+
+.SS vector_map
+
+.nf
+.RS
+int vector_map(vector(D) dst, vector(S), src, vector_map_fn *map, void *user)
+.RE
+.fi
+
+.PP
+Maps items of type \fBS\fR to items of type \fBD\fR using the \fBmap\fR callback, stopping if a non\-zero value is returned by one of the calls\&.
+
+.nf
+.RS
+typedef int(vector_map_fn)(void *dst, void *src, void *user);
+.RE
+.fi
+
+.PP
+Possible error codes: ITER_EINVAL, ITER_EINTR, ITER_ENOMEM\&.
+
+.SS vector_find
+
+.nf
+.RS
+T *vector_find(vector(T) vec, const T *item, vector_compare_fn *cmp)
+.RE
+.fi
+
+.PP
+Finds \fBitem\fR inside \fBvec\fR by comparing items with \fBcmp\fR\&. If the \fBvector_compare_fn\fR callback is \fBNULL\fR it will default to \fBmemcmp\fR\&.
+
+.nf
+.RS
+typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t s);
+.RE
+.fi
+
+.SS vector_iter
+
+.nf
+.RS
+iter(T) vector_iter(vector(T) vec, iter_t *out)
+.RE
+.fi
+
+.PP
+Initializes \fBout\fR as an iterator traversing items present in \fBvec\fR\&.
+
+.PP
+Resizing the vector will invalidate the returned iterator\&.
+
+
+.SS vector_iter_ref
+
+.nf
+.RS
+iter(T *) vector_iter_ref(vector(T) vec, iter_t *out)
+.RE
+.fi
+
+.PP
+Initializes \fBout\fR as an iterator traversing the addreses of each item present in \fBvec\fR\&.
+
+.PP
+Resizing the vector will invalidate the returned iterator\&.
+
+
+.SS vector_sort
+
+.nf
+.RS
+int vector_sort(vector(T) vec, vector_compare_fn *cmp)
+.RE
+.fi
+
+.PP
+Sorts items inside \fBvec\fR according to the provided comparison function\&. This function always uses a stable sorting algorithm, currently mergesort\&.
+
+.nf
+.RS
+typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t s);
+.RE
+.fi
+
+.PP
+Return value of function \fBcmp\fR is treated like \fBmemcmp\fR:
+
+.IP \(bu 2
+a negative number means \fBlhs\fR comes before \fBrhs\fR\&.
+.IP \(bu 2
+number 0 means \fBlhs\fR and \fBrhs\fR are equal\&.
+.IP \(bu 2
+a positive number means \fBlhs\fR comes after \fBrhs\fR\&.
+
+.PP
+Possible error codes: ITER_EINVAL, ITER_ENOMEM\&.
+
+.SS vector_is_sorted
+
+.nf
+.RS
+int vector_is_sorted(vector(T) vec, vector_compare_fn *cmp)
+.RE
+.fi
+
+.PP
+Checks if items inside \fBvec\fR are sorted according to the \fBcmp\fR function\&.
+
+.nf
+.RS
+typedef int(vector_compare_fn)(const void *lhs, const void *rhs, size_t s);
+.RE
+.fi
+
+.PP
+Return value of function \fBcmp\fR is treated like \fBmemcmp\fR:
+
+.IP \(bu 2
+a negative number means \fBlhs\fR comes before \fBrhs\fR\&.
+.IP \(bu 2
+number 0 means \fBlhs\fR and \fBrhs\fR are equal\&.
+.IP \(bu 2
+a positive number means \fBlhs\fR comes after \fBrhs\fR\&.
+
+.PP
+Possible error codes: ITER_EINVAL\&.
+
+
+.SH ERRORS
+
+For most functions that return an \fBint\fR type, \fB0\fR indicates success, while negated values of POSIX error codes indicate failure.
+
+You should interpret returned values as:
+
+.IP \(bu 2
+\fBITER_OK\fR - Function call succeeded.
+.IP \(bu 2
+\fBITER_EINVAL\fR - Invalid parameter values passed.
+.IP \(bu 2
+\fBITER_ENOMEM\fR - Allocation error occured, e.g. out of memory.
+.IP \(bu 2
+\fBITER_EEXIST\fR - Key or value already exists.
+.IP \(bu 2
+\fBITER_ENOENT\fR - Key or value doesn't exist.
+.IP \(bu 2
+\fBITER_ENODATA\fR - No more items available.
+.IP \(bu 2
+\fBITER_ENOSYS\fR - Feature is not available.
+
+Alongside these, boolean values \fBITER_TRUE\fR and \fBITER_FALSE\fR are defined.
+
+.SH SEE ALSO
+.BR libiter-bitmap (3),
+.BR libiter-hashmap (3),
+.BR libiter-iter (3),
+.BR libiter-pool (3),
+.BR libiter-vector (3).
+.SH AUTHOR
+Copyright (C) 2026 Предраг Јовановић

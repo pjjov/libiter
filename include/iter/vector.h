@@ -22,7 +22,11 @@ typedef struct allocator_t allocator_t;
     #define ITER_INLINE static inline
 #endif
 
-/** # vector(T) - Growable arrays
+/** ## NAME
+
+    `vector(T)` - generic growable arrays
+
+    ## DESCRIPTION
 
     vector(T) is a growable array like `std::vector` from C++ and `Vec`
     from Rust. The type `T` must have a size larger than 0, i.e. not `void`.
@@ -34,6 +38,20 @@ typedef struct allocator_t allocator_t;
     Unlike other containers, the alignment of type `T` is handled by
     the allocator. To support over-aligned types, like SIMD vectors,
     you should use `vector_with_alignment`.
+
+    ### Alignment
+
+    Unlike other containers, to keep the implementation of vectors simple,
+    the alignment of types is not explicitly handled and can cause problems
+    for over-aligned types, like SIMD vectors.
+
+    However, you can still use vectors in these situations if you handle
+    the alignment correctly in a custom allocator that is passed to the vector,
+    e.g. you can use `allocator_aligned.h` by passing a minimum alignment.
+
+    [TOC]
+
+    ## REFERENCE
 **/
 
 #define vector(T) generic_container(vector_t, size_t, T)
@@ -44,17 +62,6 @@ typedef struct vector_t {
     size_t capacity;
     allocator_t *allocator;
 } vector_t;
-
-/** ## Alignment
-
-    Unlike other containers, to keep the implementation of vectors simple,
-    the alignment of types is not explicitly handled and can cause problems
-    for over-aligned types, like SIMD vectors.
-
-    However, you can still use vectors in these situations if you handle
-    the alignment correctly in a custom allocator that is passed to the vector,
-    e.g. you can use `allocator_aligned.h` by passing a minimum alignment.
-**/
 
 #define vector_type(m_vec) generic_value_type(vector_t, m_vec)
 #define vector_type_ptr(m_vec) generic_value_ptr(vector_t, m_vec)
@@ -75,6 +82,8 @@ PF_IMPL_OVERFLOW(PF_OVERFLOW_SIZE, size_t, u, size, vector_)
 #else
     #define vector__checked_umulsize(m_l, m_r) ((m_l) * (m_r))
 #endif
+
+/** nanodoc.inline-decl  on **/
 
 /** vector(T) vector_init(type T, vector_t *vec, allocator_t *allocator);
 
@@ -137,7 +146,7 @@ ITER_API vector_t *vector__from_array(
     const void *items, size_t length, allocator_t *alloc
 );
 
-/** vector(T) vector_from_iter(iter(T) it, allocator_t *allocator)
+/** vector(T) vector_from_iter(iter(T) it, allocator_t *allocator);
 
     Creates a new vector with type `T` and inserts all items from `it`.
     Returns `NULL` if out of memory or `sizeof(T) == 0`.
