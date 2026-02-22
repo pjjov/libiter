@@ -21,14 +21,31 @@ typedef struct allocator_t allocator_t;
     #define ITER_INLINE static inline
 #endif
 
-/** ## hashmap(K, V) - Associative arrays
+/** ## NAME
+
+    `hashmap(K, V)` - generic associative arrays
+
+    ## DESCRIPTION
 
     Hash maps are associative containers, storing key-value pairs.
     Unlike `vector`, `hashmap` stores two types, one for the key and
     one for the value (labeled as K and V).
 
     The performance of this container heavily depends on the `hasher_fn` used.
+
+    ### Casting
+
+    Because of stricter memory requirements, casting the key and value types
+    of hashmaps should only be done when the new types have the same size and
+    alignment as the previous ones, i.e. produce the same layout structure.
+
+    [TOC]
+
+    ## REFERENCE
 **/
+
+/** nanodoc.inline-decl  on **/
+
 #define hashmap(K, V) generic_container(hashmap_t, K, V)
 
 typedef struct hashmap_t {
@@ -47,12 +64,6 @@ typedef struct hashmap_t {
     allocator_t *allocator;
 } hashmap_t;
 
-/** ## Casting
-
-    Because of stricter memory requirements, casting the key and value types
-    of hashmaps should only be done when the new types have the same size and
-    alignment as the previous ones, i.e. produce the same layout structure.
-**/
 #define hashmap_make_layout(K, V)                                              \
     ((struct hashmap_layout) { sizeof(K), alignof(K), sizeof(V), alignof(V) })
 

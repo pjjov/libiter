@@ -8,7 +8,11 @@
 #ifndef LIBITER_HASH_H
 #define LIBITER_HASH_H
 
-/** # Hashing functions
+/** ## NAME
+
+    `hash_fn` and `hasher_fn` - hashing functions for **libiter** containers.
+
+    ## DESCRIPTION
 
     We divide hashing into two functions: `hash_fn` and `hasher_fn`.
 
@@ -22,6 +26,10 @@
     Hashing functions are used for associative containers and they
     heavily impact their perfomance. Picking a right function depends
     on the data used and thorough benchmarking should be done.
+
+    [TOC]
+
+    ## REFERENCE
 **/
 
 #include <stddef.h>
