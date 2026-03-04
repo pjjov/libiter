@@ -16,6 +16,20 @@
     #define ITER_INLINE static inline
 #endif
 
+/** ## NAME
+
+    `bitmap_t` - uncompressed bit array
+
+    ## DESCRIPTION
+
+    `bitmap_t` is a growable and uncompressed bit array. Bits are stored
+    sequentially and continiously in an array, packed in larger integer types.
+
+    [TOC]
+
+    ## REFERENCE
+**/
+
 #include <stddef.h>
 
 typedef struct allocator_t allocator_t;

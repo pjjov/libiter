@@ -111,6 +111,8 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
 
 #if defined(HASH_FNV_PRIME) && defined(HASH_FNV_OFFSET)
 
+/** nanodoc.inline-decl  on **/
+
 /** hash_t hasher_fnv1a(const void *buffer, size_t length)
 
     Fowler–Noll–Vo hash function variant for the `hasher_fn` interface.

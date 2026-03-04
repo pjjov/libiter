@@ -21,12 +21,21 @@ typedef struct allocator_t allocator_t;
     #define ITER_INLINE static inline
 #endif
 
-/** ## pool(T)
+/** ## NAME
+
+    `pool(T)` - iterable object pool
+
+    ## DESCRIPTION
 
     Iterable container with fast insertion and deletion operations.
     The item pointers returned by this structure will be valid
     until the item has been destroyed by using `pool_give`.
+
+    [TOC]
+
+    ## REFERENCE
 **/
+
 #define pool(T) generic_container(pool_t, size_t, T)
 
 typedef struct pool_t {
@@ -44,6 +53,8 @@ typedef struct pool_t {
 #define pool_as_base(m_pool) generic_check_container(pool_t, size_t, m_pool)
 #define pool_check_type(m_pool, m_item)         \
     generic_check_value(pool_t, m_pool, m_item)
+
+/** nanodoc.inline-decl  on **/
 
 /** pool(T) pool_init(type T, pool_t *out, allocator_t *allocator);
 
@@ -145,7 +156,7 @@ ITER_INLINE allocator_t *pool__allocator(pool_t *pool) {
     return pool ? pool->allocator : NULL;
 }
 
-/** T *pool_take(pool(T) pool)
+/** T *pool_take(pool(T) pool);
 
     Takes an unused item from the pool and returns it.
     Possible error codes: ITER_EINVAL, ITER_ENOMEM.
@@ -155,7 +166,7 @@ ITER_INLINE allocator_t *pool__allocator(pool_t *pool) {
 
 ITER_API void *pool__take(pool_t *pool);
 
-/** int pool_give(pool(T) pool, T *item)
+/** int pool_give(pool(T) pool, T *item);
 
     Gives back the item to the `pool`, marking it as unused.
     Possible error codes: ITER_EINVAL, ITER_ENOENT.
@@ -165,7 +176,7 @@ ITER_API void *pool__take(pool_t *pool);
 
 ITER_API int pool__give(pool_t *pool, void *item);
 
-/** size_t pool_to_index(pool(T) pool, T *item)
+/** size_t pool_to_index(pool(T) pool, T *item);
 
     Returns an unique numeric index for `item` or 0 if either is `NULL`.
     Returned index will always be smaller than pool's capacity.
@@ -175,7 +186,7 @@ ITER_API int pool__give(pool_t *pool, void *item);
 
 ITER_API size_t pool__to_index(pool_t *pool, void *item);
 
-/** T *pool_from_index(pool(T) pool, size_t index)
+/** T *pool_from_index(pool(T) pool, size_t index);
 
     Returns the pointer to the item located at `index`,
     or `NULL` if it's larger than pool's capacity.
