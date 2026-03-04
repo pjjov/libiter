@@ -24,6 +24,7 @@ lib = library(
     'iter',
     dependencies: deps,
     include_directories: inc,
+    install: true,
     sources: src
 )
 
@@ -35,6 +36,19 @@ iter_dep = declare_dependency(
 
 meson.override_dependency('iter', iter_dep)
 meson.override_dependency('libiter', iter_dep)
+
+install_headers(
+    'include/iter/bitmap.h',
+    'include/iter/error.h',
+    'include/iter/generic.h',
+    'include/iter/global.h',
+    'include/iter/hash.h',
+    'include/iter/hashmap.h',
+    'include/iter/iter.h',
+    'include/iter/pool.h',
+    'include/iter/vector.h',
+    subdir: 'iter'
+)
 
 tests = executable(
     'libiter-test',
