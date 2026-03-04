@@ -40,6 +40,7 @@ tests = executable(
     'libiter-test',
     dependencies: [iter_dep],
     sources: [
+        'test/bitmap.c',
         'test/hashmap.c',
         'test/iter.c',
         'test/main.c',
@@ -48,6 +49,7 @@ tests = executable(
     ]
 )
 
+test('libiter/bitmap', tests, args: ['bitmap'], protocol: 'tap')
 test('libiter/hashmap', tests, args: ['hashmap'], protocol: 'tap')
 test('libiter/iter', tests, args: ['iter'], protocol: 'tap')
 test('libiter/pool', tests, args: ['pool'], protocol: 'tap')

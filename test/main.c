@@ -8,16 +8,33 @@
 #include <pf_test.h>
 #include <string.h>
 
+/* clang-format off */
+
+extern pf_test suite_bitmap[];
 extern pf_test suite_hashmap[];
 extern pf_test suite_iter[];
 extern pf_test suite_pool[];
 extern pf_test suite_vector[];
 
 static const pf_test *suites[] = {
-    suite_hashmap, suite_iter, suite_pool, suite_vector, NULL,
+    suite_bitmap,
+    suite_hashmap,
+    suite_iter,
+    suite_pool,
+    suite_vector,
+    NULL,
 };
 
-static const char *names[] = { "hashmap", "iter", "pool", "vector", NULL };
+static const char *names[] = {
+    "bitmap",
+    "hashmap",
+    "iter",
+    "pool",
+    "vector",
+    NULL,
+};
+
+/* clang-format on */
 
 int main(int argc, char *argv[]) {
     if (argc > 2) {

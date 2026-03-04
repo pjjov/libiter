@@ -169,7 +169,7 @@ int bitmap_get(bitmap_t *map, size_t i) {
     if (!(slot = bitmap_slot(map, i, NULL)))
         return ITER_EINVAL;
 
-    return *slot & BIT(1, i);
+    return *slot & BIT(1, i) ? ITER_TRUE : ITER_FALSE;
 }
 
 int bitmap_set(bitmap_t *map, size_t i, int value) {
@@ -180,7 +180,8 @@ int bitmap_set(bitmap_t *map, size_t i, int value) {
     if (!(slot = bitmap_slot(map, i, NULL)))
         return ITER_EINVAL;
 
-    *slot |= BIT(value != 0, i);
+    bitmap_int_t masked = *slot & ~BIT(1, i);
+    *slot = masked | BIT(value != 0 ? 1 : 0, i);
     return ITER_OK;
 }
 
@@ -193,7 +194,7 @@ int bitmap_toggle(bitmap_t *map, size_t i) {
         return ITER_EINVAL;
 
     *slot ^= BIT(1, i);
-    return ITER_OK;
+    return *slot & BIT(1, i) ? ITER_FALSE : ITER_TRUE;
 }
 
 int bitmap_getn(bitmap_t *map, char *out, size_t i, size_t count) {

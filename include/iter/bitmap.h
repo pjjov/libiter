@@ -127,6 +127,13 @@ ITER_API int bitmap_getn(bitmap_t *map, char *out, size_t i, size_t count);
 **/
 ITER_API int bitmap_setn(bitmap_t *map, int value, size_t i, size_t count);
 
+/** Sets all bits of `map` to 0.
+    Possible error codes: ITER_EINVAL.
+**/
+ITER_INLINE int bitmap_clear(bitmap_t *map) {
+    return bitmap_setn(map, 0, 0, bitmap_length(map));
+}
+
 /** Toggles the value of `count` bits starting at index `i`.
     Possible error codes: ITER_EINVAL, ITER_ENOMEM.
 **/
