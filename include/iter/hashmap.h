@@ -8,10 +8,10 @@
 #ifndef LIBITER_HASHMAP_H
 #define LIBITER_HASHMAP_H
 
-#include <iter/generic.h>
+#define LIBITER_NEED_TYPE
+#define LIBITER_NEED_HASHMAP
 #include <iter/hash.h>
-
-typedef struct allocator_t allocator_t;
+#include <iter/types.h>
 
 #ifndef ITER_API
     #define ITER_API
@@ -45,24 +45,6 @@ typedef struct allocator_t allocator_t;
 **/
 
 /** nanodoc.inline-decl  on **/
-
-#define hashmap(K, V) generic_container(hashmap_t, K, V)
-
-typedef struct hashmap_t {
-    void *buffer;
-    size_t count;
-
-    unsigned int ksize;
-    unsigned int koffset;
-    unsigned int vsize;
-    unsigned int voffset;
-    unsigned int bucketSize;
-    unsigned int capacityLog2;
-
-    hash_fn *hash;
-    hasher_fn *hasher;
-    allocator_t *allocator;
-} hashmap_t;
 
 #define hashmap_make_layout(K, V)                                              \
     ((struct hashmap_layout) { sizeof(K), alignof(K), sizeof(V), alignof(V) })

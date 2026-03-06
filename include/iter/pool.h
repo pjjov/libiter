@@ -8,10 +8,9 @@
 #ifndef ITER_POOL_H
 #define ITER_POOL_H
 
-#include <iter/generic.h>
-
-typedef struct allocator_t allocator_t;
-#include <stddef.h>
+#define LIBITER_NEED_TYPE
+#define LIBITER_NEED_POOL
+#include <iter/types.h>
 
 #ifndef ITER_API
     #define ITER_API
@@ -35,17 +34,6 @@ typedef struct allocator_t allocator_t;
 
     ## REFERENCE
 **/
-
-#define pool(T) generic_container(pool_t, size_t, T)
-
-typedef struct pool_t {
-    void *buffer;
-    size_t size;
-    size_t align;
-    size_t count;
-    size_t capacity;
-    allocator_t *allocator;
-} pool_t;
 
 #define pool_type(m_pool) generic_value_type(pool_t, m_pool)
 #define pool_type_ptr(m_pool) generic_value_ptr(pool_t, m_pool)

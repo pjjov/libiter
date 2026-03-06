@@ -32,7 +32,7 @@
     ## REFERENCE
 **/
 
-#include <stddef.h>
+#include <iter/types.h>
 #include <stdint.h>
 
 #ifndef ITER_API
@@ -41,13 +41,6 @@
 
 #ifndef ITER_INLINE
     #define ITER_INLINE static inline
-#endif
-
-#ifndef ITER_HASH_TYPE
-    #include <limits.h>
-    #define ITER_HASH_TYPE size_t
-    #define HASH_MIN SIZE_MIN
-    #define HASH_MAX SIZE_MAX
 #endif
 
 /** ## HASH_BITS
@@ -71,7 +64,6 @@
     `hash_t` is the integer type used for storing hash values, by default
     identical to `size_t`, which can be changed using `ITER_HASH_TYPE`.
 **/
-typedef ITER_HASH_TYPE hash_t;
 
 /** ## hasher_fn
 
@@ -79,7 +71,6 @@ typedef ITER_HASH_TYPE hash_t;
     and outputs a corresponding hash value. If two items are equal,
     the callback should return the same hash value for both.
 **/
-typedef hash_t(hasher_fn)(const void *buffer, size_t length);
 
 /** ## hash_fn
 
@@ -94,7 +85,6 @@ typedef hash_t(hasher_fn)(const void *buffer, size_t length);
     when producing a hash. If two items are equal, the callback
     should return the same hash value for both.
 **/
-typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
 
 #if !defined(HASH_FNV_PRIME) || !defined(HASH_FNV_OFFSET)
     #if HASH_BITS == 128

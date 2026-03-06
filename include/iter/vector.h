@@ -8,11 +8,10 @@
 #ifndef LIBITER_VECTOR_H
 #define LIBITER_VECTOR_H
 
+#define LIBITER_NEED_TYPE
+#define LIBITER_NEED_VECTOR
 #include <iter/error.h>
-#include <iter/generic.h>
-
-typedef struct allocator_t allocator_t;
-#include <stddef.h>
+#include <iter/types.h>
 
 #ifndef ITER_API
     #define ITER_API
@@ -53,15 +52,6 @@ typedef struct allocator_t allocator_t;
 
     ## REFERENCE
 **/
-
-#define vector(T) generic_container(vector_t, size_t, T)
-
-typedef struct vector_t {
-    void *items;
-    size_t length;
-    size_t capacity;
-    allocator_t *allocator;
-} vector_t;
 
 #define vector_type(m_vec) generic_value_type(vector_t, m_vec)
 #define vector_type_ptr(m_vec) generic_value_ptr(vector_t, m_vec)

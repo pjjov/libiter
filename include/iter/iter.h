@@ -8,9 +8,10 @@
 #ifndef LIBITER_ITER_H
 #define LIBITER_ITER_H
 
+#define LIBITER_NEED_TYPE
+#define LIBITER_NEED_ITER
 #include <iter/error.h>
-#include <iter/generic.h>
-#include <stddef.h>
+#include <iter/types.h>
 
 #ifndef ITER_API
     #define ITER_API
@@ -36,9 +37,6 @@
 **/
 
 #define ITER__CAST(it) ((void *)(&(it)->buffer))
-
-#define iter(T) generic_container(iter_t, size_t, T)
-typedef struct iter_t iter_t;
 
 /** This function callback is used to implement custom iterators.
 

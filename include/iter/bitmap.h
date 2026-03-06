@@ -30,25 +30,12 @@
     ## REFERENCE
 **/
 
-#include <stddef.h>
-
-typedef struct allocator_t allocator_t;
+#include <iter/types.h>
 
 enum {
     BITMAP_CLEAR = 0,
     BITMAP_SET = 1,
 };
-
-typedef struct bitmap_t {
-    size_t length;
-    void *buffer;
-    allocator_t *allocator;
-
-    union {
-        size_t capacity;
-        size_t offset;
-    } as;
-} bitmap_t;
 
 /** Initializes `out` and returns it. With this function, you can allocate
     the bitmap object onto the stack. If `allocator` is `NULL`, the default
