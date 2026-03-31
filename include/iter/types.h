@@ -28,6 +28,7 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
     #endif
 
     #ifndef LIBITER_NEED_TYPE
+        #define LIBITER_NEED_ASYNC
         #define LIBITER_NEED_BITMAP
         #define LIBITER_NEED_HASHMAP
         #define LIBITER_NEED_ITER
@@ -35,6 +36,24 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
         #define LIBITER_NEED_VECTOR
     #else
         #undef LIBITER_NEED_TYPE
+    #endif
+
+    #if defined(LIBITER_NEED_ASYNC) && !defined(LIBITER_HAS_ASYNC)
+
+        #define LIBITER_HAS_ASYNC
+        #define future(T) generic_container(future_t, void, T)
+
+typedef struct future_t future_t;
+typedef struct promise_t promise_t;
+typedef int(async_fn)(promise_t *p, future_t *f);
+
+typedef struct executor_t executor_t;
+
+struct future_t {
+    executor_t *exec;
+    char item[];
+};
+
     #endif
 
     #if defined(LIBITER_NEED_BITMAP) && !defined(LIBITER_HAS_BITMAP)
@@ -55,7 +74,6 @@ typedef struct bitmap_t {
     #endif
 
     #if defined(LIBITER_NEED_HASHMAP) && !defined(LIBITER_HAS_HASHMAP)
-
         #define LIBITER_HAS_HASHMAP
         #define hashmap(K, V) generic_container(hashmap_t, K, V)
 

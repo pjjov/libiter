@@ -38,8 +38,11 @@ enum {
     ITER_ENOMEM = -12,
     ITER_EEXIST = -17,
     ITER_EINVAL = -22,
+    ITER_ENOLCK = -37,
     ITER_ENOSYS = -38,
     ITER_ENODATA = -61,
+    ITER_ETIMEDOUT = -110,
+    ITER_ECANCELED = -125,
 };
 
 #endif
