@@ -10,8 +10,9 @@
 
 #define LIBITER_NEED_TYPE
 #define LIBITER_NEED_ITER
-#include <iter/error.h>
 #include <iter/types.h>
+
+#include <iter/error.h>
 
 #ifndef ITER_API
     #define ITER_API

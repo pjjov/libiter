@@ -30,6 +30,8 @@
     ## REFERENCE
 **/
 
+#define LIBITER_NEED_TYPE
+#define LIBITER_NEED_BITMAP
 #include <iter/types.h>
 
 enum {

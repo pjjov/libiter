@@ -32,6 +32,7 @@
     ## REFERENCE
 **/
 
+#define LIBITER_NEED_TYPE
 #include <iter/types.h>
 #include <stdint.h>
 

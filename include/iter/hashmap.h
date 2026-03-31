@@ -10,8 +10,9 @@
 
 #define LIBITER_NEED_TYPE
 #define LIBITER_NEED_HASHMAP
-#include <iter/hash.h>
 #include <iter/types.h>
+
+#include <iter/hash.h>
 
 #ifndef ITER_API
     #define ITER_API
