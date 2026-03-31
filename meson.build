@@ -5,6 +5,7 @@
 project('libiter', 'c')
 
 src = [
+    'src/async.c',
     'src/bitmap.c',
     'src/global.c',
     'src/hashmap.c',
@@ -38,6 +39,7 @@ meson.override_dependency('iter', iter_dep)
 meson.override_dependency('libiter', iter_dep)
 
 install_headers(
+    'include/iter/async.h',
     'include/iter/bitmap.h',
     'include/iter/error.h',
     'include/iter/generic.h',
