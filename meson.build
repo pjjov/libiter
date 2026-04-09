@@ -52,21 +52,24 @@ install_headers(
     subdir: 'iter'
 )
 
-tests = executable(
-    'libiter-test',
-    dependencies: [iter_dep],
-    sources: [
-        'test/bitmap.c',
-        'test/hashmap.c',
-        'test/iter.c',
-        'test/main.c',
-        'test/pool.c',
-        'test/vector.c',
-    ]
-)
+if not meson.is_subproject()
+    tests = executable(
+        'libiter-test',
+        dependencies: [iter_dep],
+        install: false,
+        sources: [
+            'test/bitmap.c',
+            'test/hashmap.c',
+            'test/iter.c',
+            'test/main.c',
+            'test/pool.c',
+            'test/vector.c',
+        ]
+    )
 
-test('libiter/bitmap', tests, args: ['bitmap'], protocol: 'tap')
-test('libiter/hashmap', tests, args: ['hashmap'], protocol: 'tap')
-test('libiter/iter', tests, args: ['iter'], protocol: 'tap')
-test('libiter/pool', tests, args: ['pool'], protocol: 'tap')
-test('libiter/vector', tests, args: ['vector'], protocol: 'tap')
+    test('libiter/bitmap', tests, args: ['bitmap'], protocol: 'tap')
+    test('libiter/hashmap', tests, args: ['hashmap'], protocol: 'tap')
+    test('libiter/iter', tests, args: ['iter'], protocol: 'tap')
+    test('libiter/pool', tests, args: ['pool'], protocol: 'tap')
+    test('libiter/vector', tests, args: ['vector'], protocol: 'tap')
+endif
