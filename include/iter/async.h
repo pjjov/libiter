@@ -128,22 +128,18 @@ ITER_API int future__poll(future_t *fut, void *out, int timeout, size_t size);
 
 ITER_API int future__handle(future_t *fut, await_fn *handler, void *user);
 
-/** int promise_await(promise_t *p, future(T) fut, T *out, int *status);
+/** int promise_await(promise_t *p, future(T) fut);
 
     Tells the executor to resume the execution of the promise after `fut`
-    is completed. The resulting data will be copied to `out` and `status`
-    will be filled with the status of the awaited `fut`.
+    is completed. The asynchronous function must exit to await the future.
 
-    > The asynchronous function must exit to await the future.
+    > You mustn't await two futures at the same time!
 
     Possible error codes: ITER_EINVAL.
 **/
-#define promise_await(m_p, m_fut, m_out, m_status)                    \
-    promise__await((m_p), future_as_base(m_fut), (m_out), (m_status))
+#define promise_await(m_p, m_fut) promise__await((m_p), future_as_base(m_fut))
 
-ITER_API int promise__await(
-    promise_t *p, future_t *fut, void *out, int *status
-);
+ITER_API int promise__await(promise_t *p, future_t *fut);
 
 /** void *promise_data(promise_t *p);
 

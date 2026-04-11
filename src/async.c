@@ -70,6 +70,17 @@ static inline int executor_unlock(executor_t *exec) {
     return thrd_success == mtx_unlock(&exec->lock) ? ITER_OK : ITER_ENOLCK;
 }
 
+static inline int handle_blocked(executor_t *exec, promise_t *promise) {
+    promise_t *blockedTail = promise->blocked;
+
+    while (blockedTail->next)
+        blockedTail = blockedTail->next;
+
+    blockedTail->next = exec->readyHead;
+    exec->readyHead = promise->blocked;
+    return ITER_OK;
+}
+
 static int run_promise(executor_t *exec, promise_t *promise) {
     executor_unlock(exec);
 
@@ -82,10 +93,11 @@ static int run_promise(executor_t *exec, promise_t *promise) {
 
     executor_lock(exec);
 
+    if (promise->blocked)
+        handle_blocked(exec, promise);
+
     future->promise = NULL;
-
     deallocate(exec->allocator, promise, sizeof(promise_t) + promise->size);
-
     cnd_broadcast(&exec->doneCond);
 
     return ITER_OK;
@@ -198,6 +210,8 @@ future_t *executor__run(
     promise->fn = fn;
     promise->future = future;
     promise->size = promiseSize;
+    promise->awaitFn = NULL;
+    promise->blocked = NULL;
     memcpy(promise->data, args, promiseSize);
 
     future->promise = promise;
@@ -268,10 +282,23 @@ int future__handle(future_t *fut, await_fn *handler, void *user) {
     return ITER_OK;
 }
 
-int promise__await(promise_t *p, future_t *fut, void *out, int *status) {
-    if (!p || !fut || !out || !status)
+int promise__await(promise_t *p, future_t *fut) {
+    if (!p || !fut)
         return ITER_EINVAL;
 
+    if (executor_lock(p->exec))
+        return ITER_ENOLCK;
+
+    promise_t *other = fut->promise;
+
+    if (!other || other == p) {
+        executor_unlock(p->exec);
+        return ITER_OK;
+    }
+
+    p->next = other->blocked;
+    other->blocked = p;
+    executor_unlock(p->exec);
     return ITER_ENOSYS;
 }
 
