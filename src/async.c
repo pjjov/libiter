@@ -39,6 +39,7 @@ struct executor_t {
     int terminate;
     mtx_t lock;
 
+    cnd_t doneCond;
     cnd_t readyCond;
     promise_t *readyHead;
 
@@ -113,6 +114,24 @@ static inline void start_threads(executor_t *exec, size_t count) {
     exec->threadCount = started;
 }
 
+static inline int init_locks(executor_t *exec) {
+    int mtx = (mtx_init(&exec->lock, mtx_timed) == thrd_success);
+    int rcnd = (cnd_init(&exec->readyCond) == thrd_success);
+    int dcnd = (cnd_init(&exec->doneCond) == thrd_success);
+
+    if (!mtx || !rcnd || !dcnd) {
+        if (!mtx)
+            mtx_destroy(&exec->lock);
+        if (!rcnd)
+            cnd_destroy(&exec->readyCond);
+        if (!dcnd)
+            cnd_destroy(&exec->doneCond);
+        return ITER_EASYNC;
+    }
+
+    return ITER_OK;
+}
+
 executor_t *executor_create(struct executor_opt *opt) {
     struct executor_opt _options = { 0 };
     opt = fix_options(opt ? opt : &_options);
@@ -125,6 +144,11 @@ executor_t *executor_create(struct executor_opt *opt) {
     exec->allocator = opt->allocator;
     exec->threadCount = 0;
     exec->readyHead = NULL;
+
+    if (init_locks(exec)) {
+        deallocate(opt->allocator, exec, sizeof(*exec));
+        return NULL;
+    }
 
     start_threads(exec, opt->threadCount);
     return exec;
