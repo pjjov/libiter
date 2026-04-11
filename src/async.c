@@ -173,12 +173,40 @@ executor_t *executor_create(struct executor_opt *opt) {
     return exec;
 }
 
-void executor_destroy(executor_t *exec) {
+int executor_join(executor_t *exec) {
     if (!exec)
-        return;
+        return ITER_EINVAL;
+
+    if (executor_lock(exec))
+        return ITER_ENOLCK;
+
+    exec->terminate = ITER_TRUE;
+    executor_unlock(exec);
+    int status;
+
+    cnd_broadcast(&exec->readyCond);
+
+    for (size_t i = 0; i < exec->threadCount; i++)
+        thrd_join(exec->threads[i], &status);
+
+    exec->threadCount = 0;
+    return ITER_OK;
+}
+
+int executor_destroy(executor_t *exec) {
+    if (executor_join(exec))
+        return ITER_EINVAL;
+
+    if (executor_lock(exec))
+        return ITER_ENOLCK;
+
+    mtx_destroy(&exec->lock);
+    cnd_destroy(&exec->doneCond);
+    cnd_destroy(&exec->readyCond);
 
     if (exec->allocator)
         deallocate(exec->allocator, exec, sizeof(*exec));
+    return ITER_OK;
 }
 
 int executor_poll(executor_t *exec) {

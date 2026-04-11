@@ -40,8 +40,17 @@ ITER_API executor_t *executor_create(struct executor_opt *options);
 **/
 ITER_API int executor_poll(executor_t *exec);
 
-/** Destroys the `exec` and it's associated objects. **/
-ITER_API void executor_destroy(executor_t *exec);
+/** Stops and joins all worker threads of `exec`.
+    Possible error codes: ITER_EINVAL, ITER_ENODATA.
+**/
+ITER_API int executor_join(executor_t *exec);
+
+/** Attempts to destroy `exec` and it's associated threads.
+    This function must only be called after all futures have been completed.
+
+    Possible error codes: ITER_EINVAL, ITER_EAGAIN.
+**/
+ITER_API int executor_destroy(executor_t *exec);
 
 /** nanodoc.inline-decl on **/
 
