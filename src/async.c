@@ -181,6 +181,24 @@ void executor_destroy(executor_t *exec) {
         deallocate(exec->allocator, exec, sizeof(*exec));
 }
 
+int executor_poll(executor_t *exec) {
+    if (!exec)
+        return ITER_EINVAL;
+
+    if (executor_lock(exec))
+        return ITER_ENOLCK;
+
+    promise_t *task = exec->readyHead;
+
+    if (task) {
+        exec->readyHead = task->next;
+        run_promise(exec, task);
+    }
+
+    executor_unlock(exec);
+    return task ? ITER_OK : ITER_ENODATA;
+}
+
 future_t *executor__run(
     async_fn *fn,
     const void *args,
