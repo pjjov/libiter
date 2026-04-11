@@ -23,9 +23,12 @@ struct future_t {
 struct promise_t {
     executor_t *exec;
     async_fn *fn;
+    size_t size;
 
-    size_t promiseSize;
-    size_t futureSize;
+    await_fn *awaitFn;
+    void *awaitUser;
+
+    promise_t *blocked;
 
     promise_t *next;
     future_t *future;
@@ -74,14 +77,16 @@ static int run_promise(executor_t *exec, promise_t *promise) {
     int status = promise->fn(promise, future);
     (void)status;
 
+    if (promise->awaitFn)
+        promise->awaitFn(future->item, promise->awaitUser);
+
     executor_lock(exec);
 
     future->promise = NULL;
-    cnd_broadcast(&exec->doneCond);
 
-    deallocate(
-        exec->allocator, promise, sizeof(promise_t) + promise->promiseSize
-    );
+    deallocate(exec->allocator, promise, sizeof(promise_t) + promise->size);
+
+    cnd_broadcast(&exec->doneCond);
 
     return ITER_OK;
 }
@@ -192,8 +197,7 @@ future_t *executor__run(
     promise->exec = exec;
     promise->fn = fn;
     promise->future = future;
-    promise->promiseSize = promiseSize;
-    promise->futureSize = futureSize;
+    promise->size = promiseSize;
     memcpy(promise->data, args, promiseSize);
 
     future->promise = promise;
@@ -244,7 +248,24 @@ int future__poll(future_t *fut, void *out, int timeout, size_t size) {
 }
 
 int future__handle(future_t *fut, await_fn *handler, void *user) {
-    return ITER_ENOSYS;
+    if (!fut || !handler)
+        return ITER_EINVAL;
+
+    if (executor_lock(fut->exec))
+        return ITER_ENOLCK;
+
+    promise_t *promise = fut->promise;
+
+    if (!promise) {
+        executor_unlock(fut->exec);
+        handler(fut->item, user);
+        return ITER_OK;
+    }
+
+    promise->awaitFn = handler;
+    promise->awaitUser = user;
+    executor_unlock(fut->exec);
+    return ITER_OK;
 }
 
 int promise__await(promise_t *p, future_t *fut, void *out, int *status) {
