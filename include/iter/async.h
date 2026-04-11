@@ -83,6 +83,10 @@ ITER_INLINE future_t *future__run(
     Checks if `fut` is complete and, if it is, moves the resulting
     data to `out` and frees the resources of the `fut` object.
 
+    Parameter `timeout` specifies the number of milliseconds to wait
+    for completion of `fut`. If `timeout` is negative, the function
+    is equivalent to `future_await`.
+
     Possible error codes: ITER_EINVAL, ITER_ETIMEDOUT.
 **/
 #define future_poll(m_fut, m_out, m_timeout) \
@@ -103,13 +107,12 @@ ITER_API int future__poll(future_t *fut, void *out, int timeout, size_t size);
     Possible error codes: ITER_EINVAL.
 **/
 #define future_await(m_fut, m_out)       \
-    future__await(                       \
+    future__poll(                        \
         future_as_base(m_fut),           \
         future_check_type(m_fut, m_out), \
+        0,                               \
         future_type_size(m_fut)          \
     )
-
-ITER_API int future__await(future_t *fut, void *out, size_t size);
 
 /** int future_handle(future(T) fut, await_fn *handler, void *user);
 

@@ -77,6 +77,8 @@ static int run_promise(executor_t *exec, promise_t *promise) {
     executor_lock(exec);
 
     future->promise = NULL;
+    cnd_broadcast(&exec->doneCond);
+
     deallocate(
         exec->allocator, promise, sizeof(promise_t) + promise->promiseSize
     );
@@ -208,11 +210,27 @@ int future__poll(future_t *fut, void *out, int timeout, size_t size) {
     if (!fut || !out)
         return ITER_EINVAL;
 
-    if (timeout != 0)
-        return ITER_ENOSYS;
+    executor_t *exec = fut->exec;
 
-    if (executor_lock(fut->exec))
+    if (executor_lock(exec))
         return ITER_ENOLCK;
+
+    if (fut->promise != NULL) {
+        if (timeout > 0) {
+            struct timespec ts;
+            ts.tv_sec = timeout / 1000;
+            ts.tv_nsec = (timeout % 1000) * 1000000;
+
+            int status = cnd_timedwait(&exec->doneCond, &exec->lock, &ts);
+            if (status != thrd_success || fut->promise != NULL) {
+                executor_unlock(exec);
+                return ITER_ETIMEDOUT;
+            }
+        } else if (timeout < 0) {
+            while (fut->promise != NULL)
+                cnd_wait(&exec->doneCond, &exec->lock);
+        }
+    }
 
     if (fut->promise == NULL) {
         memcpy(out, fut->item, size);
@@ -223,13 +241,6 @@ int future__poll(future_t *fut, void *out, int timeout, size_t size) {
 
     executor_unlock(fut->exec);
     return ITER_ETIMEDOUT;
-}
-
-int future__await(future_t *fut, void *out, size_t size) {
-    if (!fut || !out)
-        return ITER_EINVAL;
-
-    return ITER_ENOSYS;
 }
 
 int future__handle(future_t *fut, await_fn *handler, void *user) {
