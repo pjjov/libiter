@@ -83,7 +83,7 @@ ITER_INLINE future_t *future__run(
     Checks if `fut` is complete and, if it is, moves the resulting
     data to `out` and frees the resources of the `fut` object.
 
-    Possible error codes: ITER_EINVAL, ITER_ETIMEDOUT, ITER_ECANCELED.
+    Possible error codes: ITER_EINVAL, ITER_ETIMEDOUT.
 **/
 #define future_poll(m_fut, m_out, m_timeout) \
     future__poll(                            \
@@ -100,7 +100,7 @@ ITER_API int future__poll(future_t *fut, void *out, int timeout, size_t size);
     Waits until `fut` is complete and, if it is, moves the resulting
     data to `out` and frees the resources of the `fut` object.
 
-    Possible error codes: ITER_EINVAL, ITER_ECANCELED.
+    Possible error codes: ITER_EINVAL.
 **/
 #define future_await(m_fut, m_out)       \
     future__await(                       \
@@ -111,16 +111,19 @@ ITER_API int future__poll(future_t *fut, void *out, int timeout, size_t size);
 
 ITER_API int future__await(future_t *fut, void *out, size_t size);
 
-/** int future_cancel(future(T) fut);
+/** int future_handle(future(T) fut, await_fn *handler, void *user);
 
-    Cancels the delivery of `fut` object, but not necessarily it's execution.
-    The cleanup of resources should be handled by it's asynchronous function.
+    Sets the handler for awaiting the result of `fut`, which will be
+    called from the same thread that executed the async function.
 
-    Possible error codes: ITER_EINVAL, ITER_ECANCELED.
+    > To free future's resources, a call to `future_poll` is still required.
+
+    Possible error codes: ITER_EINVAL.
 **/
-#define future_cancel(m_fut) future__cancel(future_as_base(m_fut))
+#define future_handle(m_fut, m_handler, m_user)                  \
+    future__handle(future_as_base(m_fut), (m_handler), (m_user))
 
-ITER_API int future__cancel(future_t *fut);
+ITER_API int future__handle(future_t *fut, await_fn *handler, void *user);
 
 /** int promise_await(promise_t *p, future(T) fut, T *out, int *status);
 
@@ -138,12 +141,6 @@ ITER_API int future__cancel(future_t *fut);
 ITER_API int promise__await(
     promise_t *p, future_t *fut, void *out, int *status
 );
-
-/** int promise_is_canceled(promise_t *p);
-
-    Checks if the corresponding future is canceled.
-**/
-ITER_API int promise_is_canceled(promise_t *p);
 
 /** void *promise_data(promise_t *p);
 

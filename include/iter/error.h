@@ -35,6 +35,7 @@ enum {
     ITER_OK = 0,
     ITER_ENOENT = -2,
     ITER_EINTR = -4,
+    ITER_EAGAIN = -11,
     ITER_ENOMEM = -12,
     ITER_EEXIST = -17,
     ITER_EINVAL = -22,
@@ -43,6 +44,7 @@ enum {
     ITER_ENODATA = -61,
     ITER_ETIMEDOUT = -110,
     ITER_ECANCELED = -125,
+    ITER_EASYNC = -256,
 };
 
 #endif

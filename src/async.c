@@ -14,6 +14,12 @@
 
 #define ASYNC_MAX_THREADS 32
 
+struct future_t {
+    executor_t *exec;
+    promise_t *promise;
+    char item[];
+};
+
 struct promise_t {
     executor_t *exec;
     async_fn *fn;
@@ -28,11 +34,15 @@ struct promise_t {
 
 struct executor_t {
     allocator_t *allocator;
+
     size_t threadCount;
+    int terminate;
     mtx_t lock;
 
-    cnd_t queueCond;
-    promise_t *queueHead;
+    cnd_t readyCond;
+    promise_t *readyHead;
+
+    thrd_t threads[ASYNC_MAX_THREADS];
 };
 
 extern allocator_t *libiter_allocator;
@@ -56,6 +66,53 @@ static inline int executor_unlock(executor_t *exec) {
     return thrd_success == mtx_unlock(&exec->lock) ? ITER_OK : ITER_ENOLCK;
 }
 
+static int run_promise(executor_t *exec, promise_t *promise) {
+    executor_unlock(exec);
+
+    future_t *future = promise->future;
+    int status = promise->fn(promise, future);
+    (void)status;
+
+    executor_lock(exec);
+
+    future->promise = NULL;
+    deallocate(
+        exec->allocator, promise, sizeof(promise_t) + promise->promiseSize
+    );
+
+    return ITER_OK;
+}
+
+static int executor_thread_fn(void *user) {
+    executor_t *exec = user;
+
+    if (executor_lock(exec))
+        return ITER_ENOLCK;
+
+    while (!exec->terminate) {
+        if (exec->readyHead == NULL) {
+            cnd_wait(&exec->readyCond, &exec->lock);
+            continue;
+        }
+
+        promise_t *task = exec->readyHead;
+        exec->readyHead = task->next;
+        run_promise(exec, task);
+    }
+
+    executor_unlock(exec);
+    return ITER_OK;
+}
+
+static inline void start_threads(executor_t *exec, size_t count) {
+    size_t started = 0;
+    for (size_t i = 0; i < count; i++)
+        if (thrd_create(&exec->threads[started], executor_thread_fn, exec))
+            started++;
+
+    exec->threadCount = started;
+}
+
 executor_t *executor_create(struct executor_opt *opt) {
     struct executor_opt _options = { 0 };
     opt = fix_options(opt ? opt : &_options);
@@ -66,8 +123,10 @@ executor_t *executor_create(struct executor_opt *opt) {
         return NULL;
 
     exec->allocator = opt->allocator;
-    exec->threadCount = opt->threadCount;
-    exec->queueHead = NULL;
+    exec->threadCount = 0;
+    exec->readyHead = NULL;
+
+    start_threads(exec, opt->threadCount);
     return exec;
 }
 
@@ -111,13 +170,13 @@ future_t *executor__run(
     promise->futureSize = futureSize;
     memcpy(promise->data, args, promiseSize);
 
-    future->exec = exec;
+    future->promise = promise;
     memset(future->item, 0, futureSize);
 
-    promise->next = exec->queueHead;
-    exec->queueHead = promise;
+    promise->next = exec->readyHead;
+    exec->readyHead = promise;
     executor_unlock(exec);
-    cnd_signal(&exec->queueCond);
+    cnd_signal(&exec->readyCond);
     return NULL;
 }
 
@@ -125,7 +184,21 @@ int future__poll(future_t *fut, void *out, int timeout, size_t size) {
     if (!fut || !out)
         return ITER_EINVAL;
 
-    return ITER_ENOSYS;
+    if (timeout != 0)
+        return ITER_ENOSYS;
+
+    if (executor_lock(fut->exec))
+        return ITER_ENOLCK;
+
+    if (fut->promise == NULL) {
+        memcpy(out, fut->item, size);
+        deallocate(fut->exec->allocator, fut, sizeof(*fut) + size);
+        executor_unlock(fut->exec);
+        return ITER_OK;
+    }
+
+    executor_unlock(fut->exec);
+    return ITER_ETIMEDOUT;
 }
 
 int future__await(future_t *fut, void *out, size_t size) {
@@ -135,10 +208,7 @@ int future__await(future_t *fut, void *out, size_t size) {
     return ITER_ENOSYS;
 }
 
-int future__cancel(future_t *fut) {
-    if (!fut)
-        return ITER_EINVAL;
-
+int future__handle(future_t *fut, await_fn *handler, void *user) {
     return ITER_ENOSYS;
 }
 
@@ -149,6 +219,4 @@ int promise__await(promise_t *p, future_t *fut, void *out, int *status) {
     return ITER_ENOSYS;
 }
 
-int promise_is_canceled(promise_t *p) { return ITER_FALSE; }
-
-void *promise_data(promise_t *p) { return NULL; }
+void *promise_data(promise_t *p) { return p ? p->data : NULL; }
