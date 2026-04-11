@@ -50,9 +50,7 @@ struct executor_t {
 };
 
 extern allocator_t *libiter_allocator;
-
-static struct executor_t default_executor = { 0 };
-executor_t *libiter_executor = &default_executor;
+extern executor_t *libiter_executor;
 
 struct executor_opt *fix_options(struct executor_opt *opt) {
     if (!opt->allocator)
@@ -237,7 +235,7 @@ future_t *executor__run(
     if (!exec)
         exec = libiter_executor;
 
-    if (executor_lock(exec))
+    if (!exec || executor_lock(exec))
         return NULL;
 
     promise_t *promise = allocate(

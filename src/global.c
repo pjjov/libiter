@@ -9,8 +9,11 @@
 #include <allocator_std.h>
 #include <iter/hash.h>
 
+typedef struct executor_t executor_t;
+
 allocator_t *libiter_allocator = &standard_allocator;
 hasher_fn *libiter_hasher = &hasher_fnv1a;
+executor_t *libiter_executor = NULL;
 
 allocator_t *libiter_use_allocator(allocator_t *allocator) {
     if (!allocator)
@@ -27,5 +30,11 @@ hasher_fn *libiter_use_hasher(hasher_fn *hasher) {
 
     hasher_fn *prev = libiter_hasher;
     libiter_hasher = hasher;
+    return prev;
+}
+
+executor_t *libiter_use_executor(executor_t *executor) {
+    executor_t *prev = libiter_executor;
+    libiter_executor = executor;
     return prev;
 }
