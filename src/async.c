@@ -9,12 +9,30 @@
 #include <iter/error.h>
 
 #include <allocator.h>
+#include <string.h>
+#include <threads.h>
 
 #define ASYNC_MAX_THREADS 32
+
+struct promise_t {
+    executor_t *exec;
+    async_fn *fn;
+
+    size_t promiseSize;
+    size_t futureSize;
+
+    promise_t *next;
+    future_t *future;
+    char data[];
+};
 
 struct executor_t {
     allocator_t *allocator;
     size_t threadCount;
+    mtx_t lock;
+
+    cnd_t queueCond;
+    promise_t *queueHead;
 };
 
 extern allocator_t *libiter_allocator;
@@ -30,6 +48,14 @@ struct executor_opt *fix_options(struct executor_opt *opt) {
     return opt;
 }
 
+static inline int executor_lock(executor_t *exec) {
+    return thrd_success == mtx_lock(&exec->lock) ? ITER_OK : ITER_ENOLCK;
+}
+
+static inline int executor_unlock(executor_t *exec) {
+    return thrd_success == mtx_unlock(&exec->lock) ? ITER_OK : ITER_ENOLCK;
+}
+
 executor_t *executor_create(struct executor_opt *opt) {
     struct executor_opt _options = { 0 };
     opt = fix_options(opt ? opt : &_options);
@@ -41,6 +67,7 @@ executor_t *executor_create(struct executor_opt *opt) {
 
     exec->allocator = opt->allocator;
     exec->threadCount = opt->threadCount;
+    exec->queueHead = NULL;
     return exec;
 }
 
@@ -62,6 +89,35 @@ future_t *executor__run(
     if (!exec)
         exec = libiter_executor;
 
+    if (executor_lock(exec))
+        return NULL;
+
+    promise_t *promise = allocate(
+        exec->allocator, sizeof(promise_t) + promiseSize
+    );
+    future_t *future = allocate(exec->allocator, sizeof(future_t) + futureSize);
+
+    if (!future || !promise) {
+        deallocate(exec->allocator, promise, sizeof(promise_t) + promiseSize);
+        deallocate(exec->allocator, future, sizeof(future_t) + futureSize);
+        executor_unlock(exec);
+        return NULL;
+    }
+
+    promise->exec = exec;
+    promise->fn = fn;
+    promise->future = future;
+    promise->promiseSize = promiseSize;
+    promise->futureSize = futureSize;
+    memcpy(promise->data, args, promiseSize);
+
+    future->exec = exec;
+    memset(future->item, 0, futureSize);
+
+    promise->next = exec->queueHead;
+    exec->queueHead = promise;
+    executor_unlock(exec);
+    cnd_signal(&exec->queueCond);
     return NULL;
 }
 
