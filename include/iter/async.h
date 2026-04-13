@@ -137,6 +137,16 @@ ITER_API int future__poll(future_t *fut, void *out, int timeout, size_t size);
 
 ITER_API int future__handle(future_t *fut, await_fn *handler, void *user);
 
+/** T *future_data(future(T) fut);
+
+    Returns the pointer of the buffer which will hold the result of `fut`.
+    This function should be used with caution in a multithreaded context.
+**/
+#define future_data(m_fut)                                        \
+    ((future_type_ptr(m_fut))future__data(future_as_base(m_fut)))
+
+ITER_API void *future__data(future_t *fut);
+
 /** int promise_await(promise_t *p, future(T) fut);
 
     Tells the executor to resume the execution of the promise after `fut`

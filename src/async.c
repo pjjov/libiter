@@ -23,7 +23,8 @@ struct future_t {
 struct promise_t {
     executor_t *exec;
     async_fn *fn;
-    size_t size;
+    unsigned int size;
+    unsigned int isBlocked : 1;
 
     await_fn *awaitFn;
     void *awaitUser;
@@ -68,14 +69,15 @@ static inline int executor_unlock(executor_t *exec) {
     return thrd_success == mtx_unlock(&exec->lock) ? ITER_OK : ITER_ENOLCK;
 }
 
-static inline int handle_blocked(executor_t *exec, promise_t *promise) {
-    promise_t *blockedTail = promise->blocked;
+static inline int handle_blocked(executor_t *exec, promise_t *p) {
+    promise_t *curr, *next;
 
-    while (blockedTail->next)
-        blockedTail = blockedTail->next;
+    for (curr = p->blocked; curr; curr = next) {
+        next = curr->next;
+        curr->next = curr->exec->readyHead;
+        curr->exec->readyHead = curr;
+    }
 
-    blockedTail->next = exec->readyHead;
-    exec->readyHead = promise->blocked;
     return ITER_OK;
 }
 
@@ -84,10 +86,12 @@ static int run_promise(executor_t *exec, promise_t *promise) {
 
     future_t *future = promise->future;
     int status = promise->fn(promise, future);
-    (void)status;
+
+    if (status == ITER_EAGAIN || promise->isBlocked)
+        return ITER_OK;
 
     if (promise->awaitFn)
-        promise->awaitFn(future->item, promise->awaitUser);
+        promise->awaitFn(future, promise->awaitUser);
 
     executor_lock(exec);
 
@@ -232,6 +236,9 @@ future_t *executor__run(
     size_t futureSize,
     size_t promiseSize
 ) {
+    if (promiseSize > UINT_MAX)
+        return NULL;
+
     if (!exec)
         exec = libiter_executor;
 
@@ -254,6 +261,7 @@ future_t *executor__run(
     promise->fn = fn;
     promise->future = future;
     promise->size = promiseSize;
+    promise->isBlocked = ITER_FALSE;
     promise->awaitFn = NULL;
     promise->blocked = NULL;
     memcpy(promise->data, args, promiseSize);
@@ -316,7 +324,7 @@ int future__handle(future_t *fut, await_fn *handler, void *user) {
 
     if (!promise) {
         executor_unlock(fut->exec);
-        handler(fut->item, user);
+        handler(fut, user);
         return ITER_OK;
     }
 
@@ -335,15 +343,17 @@ int promise__await(promise_t *p, future_t *fut) {
 
     promise_t *other = fut->promise;
 
-    if (!other || other == p) {
+    if (!other || other == p || p->isBlocked) {
         executor_unlock(p->exec);
-        return ITER_OK;
+        return !other ? ITER_OK : ITER_EINVAL;
     }
 
+    p->isBlocked = ITER_TRUE;
     p->next = other->blocked;
     other->blocked = p;
     executor_unlock(p->exec);
     return ITER_ENOSYS;
 }
 
+void *future__data(future_t *fut) { return fut ? fut->item : NULL; }
 void *promise_data(promise_t *p) { return p ? p->data : NULL; }

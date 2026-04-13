@@ -46,7 +46,7 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
 typedef struct future_t future_t;
 typedef struct promise_t promise_t;
 typedef int(async_fn)(promise_t *p, future_t *f);
-typedef int(await_fn)(void *data, void *user);
+typedef int(await_fn)(future_t *fut, void *user);
 
 typedef struct executor_t executor_t;
 
