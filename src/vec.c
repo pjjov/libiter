@@ -9,11 +9,10 @@
 #include <iter/vec.h>
 
 #include <allocator.h>
-#include <allocator_std.h>
 #include <pf_macro.h>
 #include <stdint.h>
 
-static allocator_t *libiter_allocator = &standard_allocator;
+extern allocator_t *libiter_allocator;
 
 static inline int can_heap_alloc(allocator_t *alloc) {
     return (((uintptr_t)alloc) & 1) == 0;
