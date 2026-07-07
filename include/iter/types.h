@@ -30,7 +30,8 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
     #ifndef LIBITER_GENERIC
         #define LIBITER_GENERIC
 
-        /** Declares a type generic container with given types
+        /** Macro: generic_container
+            Declares a type generic container with given types
 
             Parameters:
                 T_CNTR - Type of the container.
@@ -39,47 +40,52 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
         #define generic_container(T_CNTR, T_ITEM)     \
             typeof(T_ITEM * (**)(T_CNTR * container))
 
-        /** Extracts the item type of the given container.
+        /** Macro: generic_item_type
+            Extracts the item type of the given container.
 
-        Parameters:
-            T_CNTR - Explicit type of the container, or <void>.
-            CNTR - Pointer to the actual container.
-    */
+            Parameters:
+                T_CNTR - Explicit type of the container, or <void>.
+                CNTR - Pointer to the actual container.
+        */
         #define generic_item_type(T_CNTR, CNTR) typeof(*(*(CNTR))((T_CNTR *)0))
 
-        /** Extracts the item type with a pointer of the given container.
+        /** Macro: generic_item_ptr
+            Extracts the item type with a pointer of the given container.
 
-        Parameters:
-            T_CNTR - Explicit type of the container, or <void>.
-            CNTR - Pointer to the actual container.
-    */
+            Parameters:
+                T_CNTR - Explicit type of the container, or <void>.
+                CNTR - Pointer to the actual container.
+        */
         #define generic_item_ptr(T_CNTR, CNTR) typeof((*(CNTR))((T_CNTR *)0, 0))
 
-        /** Extracts the item type with a pointer of the given container.
+        /** Macro: generic_item_size
+            Extracts the item type with a pointer of the given container.
 
-        Parameters:
-            T_CNTR - Explicit type of the container, or <void>.
-            CNTR - Pointer to the actual container.
-    */
+            Parameters:
+                T_CNTR - Explicit type of the container, or <void>.
+                CNTR - Pointer to the actual container.
+        */
         #define generic_item_size(T_CNTR, CNTR)     \
             sizeof(generic_item_type(T_CNTR, CNTR))
 
-        /** Check if given item's type matches container's subtype.
+        /** Macro: generic_check_item
+            Check if given item's type matches container's subtype.
 
-        Parameters:
-            T_CNTR - Explicit type of the container, or <void>.
-            CNTR - Pointer to the actual container.
-            ITEM - Pointer to the given item.
-    */
+            Parameters:
+                T_CNTR - Explicit type of the container, or <void>.
+                CNTR - Pointer to the actual container.
+                ITEM - Pointer to the given item.
+        */
         #define generic_check_item(T_CNTR, CNTR, ITEM)           \
             pf_check_type(generic_value_ptr(T_CNTR, CNTR), ITEM)
 
-    /** Check if given container is of the given type (not subtype).
+        /** Macro: generic_check_container
+            Check if given container is of the given type (not subtype).
 
-        Parameters:
-            T_CNTR - Explicit type of the container, or <void>.
-            CNTR - Pointer to the actual container.
-    */
+            Parameters:
+                T_CNTR - Explicit type of the container, or <void>.
+                CNTR - Pointer to the actual container.
+        */
         #define generic_check_container(T_CNTR, CNTR)                        \
             ((T_CNTR *)pf_check_type(                                        \
                 generic_container(T_CNTR, generic_value_type(T_CNTR, CNTR)), \
@@ -101,9 +107,9 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
 
 typedef struct vec_t {
     void *items;
-    size_t length;
-    size_t capacity;
-    allocator_t *allocator;
+    size_t len;
+    size_t cap;
+    allocator_t *alloc;
 } vec_t;
 
     #endif
