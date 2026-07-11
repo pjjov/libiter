@@ -5,7 +5,7 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
-#include "iter/types.h"
+#include <iter/global.h>
 #include <iter/vec.h>
 
 #include <allocator.h>
@@ -37,7 +37,7 @@ allocator_t *vec_allocator(vec_t *v) {
 
 vec_t *vec_new(allocator_t *alloc) {
     if (!can_heap_alloc(alloc))
-        return NULL;
+        return ITER_THROW_NULL(ITER_EINVAL);
 
     if (!alloc)
         alloc = libiter_allocator;
@@ -45,7 +45,7 @@ vec_t *vec_new(allocator_t *alloc) {
     vec_t *out;
 
     if (!(out = allocate(alloc, sizeof(*out))))
-        return NULL;
+        return ITER_THROW_NULL(ITER_ENOMEM);
 
     vec_init(out, alloc);
     mark_heap_alloc(out, alloc);
@@ -54,7 +54,7 @@ vec_t *vec_new(allocator_t *alloc) {
 
 vec_t *vec_init(vec_t *out, allocator_t *alloc) {
     if (!out)
-        return NULL;
+        return ITER_THROW_NULL(ITER_EINVAL);
 
     if (!alloc)
         alloc = libiter_allocator;

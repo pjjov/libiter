@@ -27,15 +27,10 @@
 typedef struct allocator_t allocator_t;
 typedef struct pf_exception_t pf_exception_t;
 
-/** Function: libiter_use_allocator
-
-    This function sets the default allocator of the library.
-*/
+/** This function sets the default allocator of the library. */
 ITER_API void libiter_use_allocator(allocator_t *allocator);
 
-/** Function: libiter_catch
-
-    This function set's up the exception handler for the `<pf_exception.h>`
+/** This function set's up the exception handler for the `<pf_exception.h>`
     exception handling interface. The first call will return `NULL`, after
     which exception-throwing code can be executed.
 
@@ -67,30 +62,22 @@ ITER_API pf_exception_t *libiter_catch(int error);
 #define ITER_THROW_ECANCELED ITER_THROW(ITER_ECANCELED, NULL)
 #define ITER_THROW_EASYNC ITER_THROW(ITER_EASYNC, NULL)
 
-/** Function: libiter_throw
-    Emits an exception with given message.
-*/
+/** Emits an exception with given message. */
 ITER_NO_RETURN ITER_API int libiter_throw(
     int code, const char *func, const char *msg
 );
 
-/** Function: libiter_throwf
-    Emits an exception with given formatting.
-*/
+/** Emits an exception with given formatting. */
 ITER_NO_RETURN ITER_API int libiter_throwf(
     int code, const char *func, const char *fmt, ...
 );
 
-/** Function: libiter_vthrowf
-    Emits an exception with given formatting.
-*/
+/** Emits an exception with given formatting. */
 ITER_NO_RETURN ITER_API int libiter_vthrowf(
     int code, const char *func, const char *fmt, va_list args
 );
 
-/** Function: libiter_rethrow
-    Emits the exception `e` for the next catcher.
-*/
+/** Emits the exception `e` for the next catcher. */
 ITER_NO_RETURN ITER_API int libiter_rethrow(pf_exception_t *e);
 
 #endif

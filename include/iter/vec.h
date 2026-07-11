@@ -22,132 +22,97 @@
 
 /** Group: Helper macros */
 
-/** Macro: vec_type
-    Extracts the item type for a given vector.
-*/
+/** Extracts the item type for a given vector. */
 #define vec_type(VEC) generic_item_type(vec_t, VEC)
 
-/** Macro: vec_type_ptr
-    Extracts the item type as a pointer for a given vector.
-*/
+/** Extracts the item type as a pointer for a given vector. */
 #define vec_type_ptr(VEC) generic_item_ptr(vec_t, VEC)
 
-/** Macro: vec_type
-    Extracts the size of the item type for a given vector.
-*/
+/** Extracts the size of the item type for a given vector. */
 #define vec_type_size(VEC) generic_item_size(vec_t, VEC)
 
-/** Macro: vec_base
-    Cast the vector into <vec_t> with some type safety.
-*/
+/** Cast the vector into `vec_t *` with some type safety. */
 #define vec_base(VEC) generic_check_container(vec_t, VEC)
 
-/** Macro: vec_type
-    Checks if given item has the vector's subtype.
-*/
+/** Checks if given item has the vector's subtype. */
 #define vec_check(VEC, ITEM) generic_check_item(vec_t, VEC, ITEM)
 
-/** Group: Allocation functions */
+/** Group: Allocation functions
+    Custom-prototype: true
+*/
 
-/** Function: vecnew
+/** vec(T) vecnew(type T, allocator_t *allocator);
 
-    --- Prototype
-    vec(T) vecnew(type T, allocator_t *allocator);
-    ---
-
-    Creates a new instance of <vec(T)>, allocated with <allocator>.
-
-    Returns: new vector or <NULL> if out of memory.
+    Creates a new instance of `vec(T)`, allocated with 'allocator'.
+    Returns: `NULL` if out of memory.
 */
 #define vecnew(T, allocator) ((vec(T))vec_new((allocator)))
 
-/** Function: vecinit
+/** vec(T) vecinit(type T, vec_t *out, allocator_t *allocator);
 
-    --- Prototype
-    vec(T) vecinit(type T, vec_t *out, allocator_t *allocator);
-    ---
-
-    Initializes 'out' to a new instance of <vec(T)>, allocated with 'allocator'.
+    Initializes 'out' to a new instance of `vec(T)`, allocated with 'allocator'.
 */
 #define vecinit(T, out, allocator) ((vec(T))vec_new((out), (allocator)))
 
-/** Function: vecunwrap
+/** T *vecunwrap(vec(T) v);
 
-    --- Prototype
-    T *vecunwrap(vec(T) v);
-    ---
-
-    Returns the item buffer of 'v' and frees 'v' if 'vecinit' was not used.
+    Returns the item buffer of 'v' and frees 'v' if `vecinit` was not used.
 */
 #define vecunwrap(v) vec_unwrap(vec_base(v))
 
-/** Function: vecfree
+/** void vecfree(vec(T) v);
 
-    --- Prototype
-    void vecfree(vec(T) v);
-    ---
-
-    Frees the item buffer of 'v' and frees 'v' if 'vecinit' was not used.
+    Frees the item buffer of 'v' and frees 'v' if `vecinit` was not used.
 */
 #define vecfree(v) vec_free(vec_base(v))
 
 /** Group: Properties */
 
-/** Function: veclen
-
-    --- Prototype
-    size_t veclen(vec(T) v)
-    ---
+/** size_t veclen(vec(T) v)
 
     Returns the number of items present in 'v'.
 */
 #define veclen(v) (vec_len(vec_base(v), vec_type_size(v)))
 
-/** Function: veccap
-
-    --- Prototype
-    size_t veccap(vec(T) v)
-    ---
+/** size_t veccap(vec(T) v)
 
     Returns the number of slots allocated in 'v'.
 */
 #define veccap(v) (vec_cap(vec_base(v), vec_type_size(v)))
 
-/** Function: vecallocator
-
-    --- Prototype
-    allocator_t *vecallocator(vec(T) v)
-    ---
+/** allocator_t *vecallocator(vec(T) v)
 
     Returns the allocator used by 'v'.
 */
 #define vecallocator(v) vec_allocator(vec_base(v))
 
-/** Group: Typeless functions */
+/** Group: Typeless functions
+    Custom-prototype: false
+*/
 
-/** Function: vec_new */
+/** Creates a new instance of `vec_t`. */
 ITER_API vec_t *vec_new(allocator_t *allocator);
 
-/** Function: vec_init */
+/** Initializes 'out' and returns it. */
 ITER_API vec_t *vec_init(vec_t *out, allocator_t *allocator);
 
-/** Function: vec_unwrap */
+/** Returns the item buffer and frees 'v'. */
 ITER_API void *vec_unwrap(vec_t *v);
 
-/** Function: vec_free */
+/** Frees the item buffer and vector 'v'. */
 ITER_API void vec_free(vec_t *v);
 
-/** Function: vec_len */
+/** Returns the number of bytes used in 'v'. */
 ITER_INLINE size_t vec_len(vec_t *v, size_t size) {
     return v || size == 0 ? v->len / size : 0;
 }
 
-/** Function: vec_cap */
+/** Returns the number of bytes allocated in 'v'. */
 ITER_INLINE size_t vec_cap(vec_t *v, size_t size) {
     return v || size == 0 ? v->cap / size : 0;
 }
 
-/** Function: vec_allocator */
+/** Returns allocator used by 'v'. */
 ITER_API allocator_t *vec_allocator(vec_t *v);
 
 #endif
