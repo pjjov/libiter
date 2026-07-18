@@ -90,3 +90,25 @@ void vec_free(vec_t *v) {
     if (is_heap_alloc(v))
         deallocate(alloc, v, sizeof(*v));
 }
+
+size_t vec_index(vec_t *v, void *item, size_t size) {
+    if (!v || !item) {
+        ITER_THROW_EINVAL;
+        return 0;
+    }
+
+    size_t last = v->len / size;
+    size_t diff = (uint8_t *)item - (uint8_t *)v->items;
+
+    if (item < v->items || item > vec_slot(v, last, size)) {
+        ITER_THROW_EINVAL;
+        return 0;
+    }
+
+    if (diff % size != 0) {
+        ITER_THROW_EINVAL;
+        return 0;
+    }
+
+    return diff / size;
+}

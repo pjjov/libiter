@@ -11,6 +11,7 @@
         #define LIBITER_TYPES_ONCE
         #include <iter/pf_types.h>
         #include <stddef.h>
+        #include <stdint.h>
 
         #ifndef ITER_HASH_TYPE
             #include <limits.h>

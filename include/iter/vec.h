@@ -86,6 +86,43 @@
 */
 #define vecallocator(v) vec_allocator(vec_base(v))
 
+/** T *vecslot(vec(T) v, size_t i)
+
+    Returns a pointer to the item slot at index i.
+*/
+#define vecslot(v, i) (vec_slot(vec_base(v), (i), vec_type_size(v)))
+
+/** T *vecptr(vec(T) v, size_t i)
+
+    Returns a pointer to the item at index i.
+*/
+#define vecptr(v, i) (vec_ptr(vec_base(v), (i), vec_type_size(v)))
+
+/** T vecget(vec(T) v, size_t i)
+
+    Returns the item at index i.
+*/
+#define vecget(v, i) (*vec_ptr(vec_base(v), (i), vec_type_size(v)))
+
+/** size_t vecindex(vec(T) v, T *item)
+
+    Returns the index of item at given pointer.
+    Throws: ITER_EINVAL.
+*/
+#define vecindex(v, item) (vec_index(vec_base(v), (item), vec_type_size(v)))
+
+/** T *vecitems(vec(T) v)
+
+    Returns the pointer of the allocated item buffer.
+*/
+#define vecitems(v) (vec_items(vec_base(v)))
+
+/** T *vecend(vec(T) v)
+
+    Returns a pointer to the end of the used part of the item buffer.
+*/
+#define vecend(v) (vec_end(vec_base(v)))
+
 /** Group: Typeless functions
     Custom-prototype: false
 */
@@ -114,5 +151,44 @@ ITER_INLINE size_t vec_cap(vec_t *v, size_t size) {
 
 /** Returns allocator used by 'v'. */
 ITER_API allocator_t *vec_allocator(vec_t *v);
+
+/** Returns pointer to the item slot. */
+ITER_INLINE void *vec_slot(vec_t *v, size_t i, size_t size) {
+    if (!v)
+        return NULL;
+    if (size > 0 && i > SIZE_MAX / size)
+        return NULL;
+
+    size_t off = i * size;
+    unsigned char *buf = v->items;
+    return off < v->cap ? &buf[off] : NULL;
+}
+
+/** Returns pointer to the item at given index. */
+ITER_INLINE void *vec_ptr(vec_t *v, size_t i, size_t size) {
+    if (!v)
+        return NULL;
+    if (size > 0 && i > SIZE_MAX / size)
+        return NULL;
+
+    size_t off = i * size;
+    unsigned char *buf = v->items;
+    return off < v->len ? &buf[off] : NULL;
+}
+
+/** Returns the item index of given pointer. */
+ITER_API size_t vec_index(vec_t *v, void *item, size_t size);
+
+/** Returns the item buffer. */
+ITER_INLINE void *vec_items(vec_t *v) { return v ? v->items : NULL; }
+
+/** Returns the pointer past the last item. */
+ITER_INLINE void *vec_end(vec_t *v) {
+    if (!v)
+        return NULL;
+
+    unsigned char *buf = v->items;
+    return &buf[v->len];
+}
 
 #endif
