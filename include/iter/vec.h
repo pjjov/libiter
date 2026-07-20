@@ -68,64 +68,107 @@
 
 /** Group: Properties */
 
-/** size_t veclen(vec(T) v)
+/** size_t veclen(vec(T) v);
 
     Returns the number of items present in 'v'.
 */
 #define veclen(v) (vec_len(vec_base(v), vec_type_size(v)))
 
-/** size_t veccap(vec(T) v)
+/** size_t veccap(vec(T) v);
 
     Returns the number of slots allocated in 'v'.
 */
 #define veccap(v) (vec_cap(vec_base(v), vec_type_size(v)))
 
-/** allocator_t *vecallocator(vec(T) v)
+/** allocator_t *vecallocator(vec(T) v);
 
     Returns the allocator used by 'v'.
 */
 #define vecallocator(v) vec_allocator(vec_base(v))
 
-/** T *vecslot(vec(T) v, size_t i)
+/** T *vecslot(vec(T) v, size_t i);
 
     Returns a pointer to the item slot at index i.
 */
 #define vecslot(v, i) (vec_slot(vec_base(v), (i), vec_type_size(v)))
 
-/** T *vecptr(vec(T) v, size_t i)
+/** T *vecptr(vec(T) v, size_t i);
 
     Returns a pointer to the item at index i.
 */
 #define vecptr(v, i) (vec_ptr(vec_base(v), (i), vec_type_size(v)))
 
-/** T vecget(vec(T) v, size_t i)
+/** T vecget(vec(T) v, size_t i);
 
     Returns the item at index i.
 */
 #define vecget(v, i) (*vec_ptr(vec_base(v), (i), vec_type_size(v)))
 
-/** size_t vecindex(vec(T) v, T *item)
+/** size_t vecindex(vec(T) v, T *item);
 
     Returns the index of item at given pointer.
     Throws: ITER_EINVAL.
 */
 #define vecindex(v, item) (vec_index(vec_base(v), (item), vec_type_size(v)))
 
-/** T *vecitems(vec(T) v)
+/** T *vecitems(vec(T) v);
 
     Returns the pointer of the allocated item buffer.
 */
 #define vecitems(v) (vec_items(vec_base(v)))
 
-/** T *vecend(vec(T) v)
+/** T *vecend(vec(T) v);
 
     Returns a pointer to the end of the used part of the item buffer.
 */
 #define vecend(v) (vec_end(vec_base(v)))
 
+/** int vecisempty(vec(T) v);
+
+    Checks if length of 'v' is 0.
+*/
+#define vecisempty(v) (vec_isempty(vec_base(v)))
+
+/** void vecclear(vec(T) v);
+
+    Sets the length of 'v' to 0.
+*/
+#define vecclear(v) (vec_clear(vec_base(v)))
+
+/** void vecsetlen(vec(T) v, size_t len);
+
+    Sets the length of 'v' to given parameter.
+*/
+#define vecsetlen(v, len) (vec_setlen(vec_base(v), (len), vec_type_size(v)))
+
+/** void vecsetcap(vec(T) v, size_t cap);
+
+    Sets the capacity of 'v' to given parameter.
+*/
+#define vecsetcap(v, cap) (vec_setcap(vec_base(v), (cap), vec_type_size(v)))
+
+/** int vecresize(vec(T) v, size_t cap);
+
+    Resizes the item buffer to fit 'cap' items.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecresize(v, cap) (vec_resize(vec_base(v), (cap), vec_type_size(v)))
+
+/** int vecreserve(vec(T) v, size_t count);
+
+    Reserves space for at least 'count' items.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecreserve(v, count)                              \
+    (vec_reserve(vec_base(v), (count), vec_type_size(v)))
+
 /** Group: Typeless functions
     Custom-prototype: false
 */
+
+#ifndef vec__mul
+    #define vec__mul(a, b) ((b) > 0 && (a) > SIZE_MAX / (b))
+#endif
 
 /** Creates a new instance of `vec_t`. */
 ITER_API vec_t *vec_new(allocator_t *allocator);
@@ -154,9 +197,7 @@ ITER_API allocator_t *vec_allocator(vec_t *v);
 
 /** Returns pointer to the item slot. */
 ITER_INLINE void *vec_slot(vec_t *v, size_t i, size_t size) {
-    if (!v)
-        return NULL;
-    if (size > 0 && i > SIZE_MAX / size)
+    if (!v || vec__mul(i, size))
         return NULL;
 
     size_t off = i * size;
@@ -166,9 +207,7 @@ ITER_INLINE void *vec_slot(vec_t *v, size_t i, size_t size) {
 
 /** Returns pointer to the item at given index. */
 ITER_INLINE void *vec_ptr(vec_t *v, size_t i, size_t size) {
-    if (!v)
-        return NULL;
-    if (size > 0 && i > SIZE_MAX / size)
+    if (!v || vec__mul(i, size))
         return NULL;
 
     size_t off = i * size;
@@ -190,5 +229,40 @@ ITER_INLINE void *vec_end(vec_t *v) {
     unsigned char *buf = v->items;
     return &buf[v->len];
 }
+
+/** Checks if length is 0. */
+ITER_INLINE int vec_isempty(vec_t *v) { return !v || v->len == 0; }
+
+/** Sets the length of 'v' to 0. */
+ITER_INLINE void vec_clear(vec_t *v) {
+    if (v)
+        v->len = 0;
+}
+
+/** Naively sets the length of 'v'. */
+ITER_INLINE void vec_setlen(vec_t *v, size_t len, size_t size) {
+    if (!v || vec__mul(len, size))
+        return;
+
+    size_t newLen = len * size;
+    v->len = newLen < v->cap ? newLen : v->cap;
+}
+
+/** Naively sets the capacity of 'v'. */
+ITER_INLINE void vec_setcap(vec_t *v, size_t cap, size_t size) {
+    if (!v || vec__mul(cap, size))
+        return;
+
+    v->cap = cap * size;
+
+    if (v->len > v->cap)
+        v->len = v->cap;
+}
+
+/** Resizes the item buffer to fit 'cap' items. */
+ITER_API int vec_resize(vec_t *v, size_t cap, size_t size);
+
+/** Reserves space for at least 'count' items. */
+ITER_API int vec_reserve(vec_t *v, size_t count, size_t size);
 
 #endif

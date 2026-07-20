@@ -12,6 +12,8 @@
 #include <pf_macro.h>
 #include <stdint.h>
 
+#define VECTOR_GROWTH(old, req) ((old + req) * 1.5)
+
 extern allocator_t *libiter_allocator;
 
 static inline int can_heap_alloc(allocator_t *alloc) {
@@ -111,4 +113,43 @@ size_t vec_index(vec_t *v, void *item, size_t size) {
     }
 
     return diff / size;
+}
+
+int vec_resize(vec_t *v, size_t cap, size_t size) {
+    if (!v || size == 0)
+        return ITER_THROW_EINVAL;
+    if (vec__mul(cap, size))
+        return ITER_THROW_EOVERFLOW;
+
+    allocator_t *alloc = vec_allocator(v);
+    size_t newCap = cap * size;
+
+    if (!alloc)
+        return ITER_THROW_EINVAL;
+
+    void *items = reallocate(alloc, v->items, v->cap, newCap);
+
+    if (!items && newCap > 0)
+        return ITER_THROW_ENOMEM;
+
+    v->items = items;
+    v->cap = newCap;
+    if (v->len > newCap)
+        v->len = newCap;
+
+    return ITER_OK;
+}
+
+int vec_reserve(vec_t *v, size_t count, size_t size) {
+    if (!v || size == 0)
+        return ITER_THROW_EINVAL;
+    if (vec__mul(count, size))
+        return ITER_THROW_EOVERFLOW;
+
+    size_t req = count * size;
+    if (v->len + req <= v->cap)
+        return ITER_OK;
+
+    size_t newCap = VECTOR_GROWTH(v->cap, req);
+    return vec_resize(v, newCap, 1);
 }
