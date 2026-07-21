@@ -5,14 +5,17 @@
     SPDX-License-Identifier: Apache-2.0
 */
 
+#include "iter/types.h"
 #include <iter/global.h>
 #include <iter/vec.h>
 
 #include <allocator.h>
 #include <pf_macro.h>
 #include <stdint.h>
+#include <string.h>
 
-#define VECTOR_GROWTH(old, req) ((old + req) * 1.5)
+#define VEC_GROWTH(old, req) ((old + req) * 1.5)
+#define VEC_OFFSET(v, i) PF_OFFSET(v->items, i)
 
 extern allocator_t *libiter_allocator;
 
@@ -150,6 +153,62 @@ int vec_reserve(vec_t *v, size_t count, size_t size) {
     if (v->len + req <= v->cap)
         return ITER_OK;
 
-    size_t newCap = VECTOR_GROWTH(v->cap, req);
+    size_t newCap = VEC_GROWTH(v->cap, req);
     return vec_resize(v, newCap, 1);
+}
+
+static int reserve_region(vec_t *v, size_t i, size_t count, size_t size) {
+    if (vec__mul(i, size) || vec__mul(count, size))
+        return ITER_THROW_EOVERFLOW;
+
+    size_t off = i * size;
+
+    if (off > v->len)
+        return ITER_THROW_EINVAL;
+
+    if (vec_reserve(v, count, size))
+        return ITER_ENOMEM;
+
+    if (off < v->len) {
+        void *dst = VEC_OFFSET(v, off + size);
+        void *src = VEC_OFFSET(v, off);
+        memmove(dst, src, v->len - off);
+    }
+
+    return ITER_OK;
+}
+
+int vec_insert(vec_t *v, void *items, size_t i, size_t count, size_t size) {
+    if (!v || !items || size == 0)
+        return ITER_THROW_EINVAL;
+
+    int rc;
+
+    if ((rc = reserve_region(v, i, count, size)))
+        return rc;
+
+    v->len += count * size;
+    memcpy(VEC_OFFSET(v, i * size), items, count * size);
+    return ITER_OK;
+}
+
+int vec_push(vec_t *v, void *items, size_t count, size_t size) {
+    if (!v || size == 0)
+        return ITER_THROW_EINVAL;
+    return vec_insert(v, items, v->len / size, count, size);
+}
+
+int vec_fill(vec_t *v, void *item, size_t i, size_t count, size_t size) {
+    if (!v || !item || size == 0)
+        return ITER_THROW_EINVAL;
+
+    int rc;
+
+    if ((rc = reserve_region(v, i, count, size)))
+        return rc;
+
+    v->len += count * size;
+    for (size_t j = 0; j < count; j++)
+        memcpy(VEC_OFFSET(v, (i + j) * size), item, size);
+    return ITER_OK;
 }

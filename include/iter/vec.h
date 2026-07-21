@@ -162,6 +162,30 @@
 #define vecreserve(v, count)                              \
     (vec_reserve(vec_base(v), (count), vec_type_size(v)))
 
+/** int vecinsert(vec(T) v, T *items, size_t i, size_t count);
+
+    Inserts 'count' items at index 'i'.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecinsert(v, items, i, count) \
+    vec_insert(vec_base(v), vec_check(v, items), (i), (count), vec_type_size(v))
+
+/** int vecpush(vec(T) v, T *items, size_t count);
+
+    Inserts 'count' items at the end of the item buffer.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecpush(v, items, count)                                          \
+    vec_push(vec_base(v), vec_check(v, items), (count), vec_type_size(v))
+
+/** int vecfill(vec(T) v, T *item, size_t i, size_t count);
+
+    Inserts 'count' copies of 'item' at index 'i'.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecfill(v, item, i, count)                                            \
+    vec_fill(vec_base(v), vec_check(v, item), (i), (count), vec_type_size(v))
+
 /** Group: Typeless functions
     Custom-prototype: false
 */
@@ -264,5 +288,18 @@ ITER_API int vec_resize(vec_t *v, size_t cap, size_t size);
 
 /** Reserves space for at least 'count' items. */
 ITER_API int vec_reserve(vec_t *v, size_t count, size_t size);
+
+/** Inserts 'count' items start at index 'i'. */
+ITER_API int vec_insert(
+    vec_t *v, void *items, size_t i, size_t count, size_t size
+);
+
+/** Inserts 'count' items at the end of the item buffer. */
+ITER_API int vec_push(vec_t *v, void *items, size_t count, size_t size);
+
+/** Inserts 'count' copies of 'item' at index 'i' */
+ITER_API int vec_fill(
+    vec_t *v, void *item, size_t i, size_t count, size_t size
+);
 
 #endif
