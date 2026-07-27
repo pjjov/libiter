@@ -178,6 +178,14 @@
 #define vecpush(v, items, count)                                          \
     vec_push(vec_base(v), vec_check(v, items), (count), vec_type_size(v))
 
+/** int vecunshift(vec(T) v, T *items, size_t count);
+
+    Inserts 'count' items at the start of the item buffer.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecunshift(v, items, count)                                          \
+    vec_unshift(vec_base(v), vec_check(v, items), (count), vec_type_size(v))
+
 /** int vecfill(vec(T) v, T *item, size_t i, size_t count);
 
     Inserts 'count' copies of 'item' at index 'i'.
@@ -185,6 +193,33 @@
 */
 #define vecfill(v, item, i, count)                                            \
     vec_fill(vec_base(v), vec_check(v, item), (i), (count), vec_type_size(v))
+
+/** int vecremove(vec(T) v, T *out, size_t i, size_t count);
+
+    Removes 'count' items start at index 'i'.
+    If 'out' is not `NULL`, removed items are copied to it.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecremove(v, out, i, count)                                \
+    vec_remove(vec_base(v), (out), (i), (count), vec_type_size(v))
+
+/** int vecpop(vec(T) v, T *out, size_t count);
+
+    Removes 'count' items from the end of the item buffer.
+    If 'out' is not `NULL`, removed items are copied to it.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecpop(v, out, count)                              \
+    vec_pop(vec_base(v), (out), (count), vec_type_size(v))
+
+/** int vecshift(vec(T) v, T *out, size_t count);
+
+    Removes 'count' items from the start of the item buffer.
+    If 'out' is not `NULL`, removed items are copied to it.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecshift(v, out, count)                              \
+    vec_shift(vec_base(v), (out), (count), vec_type_size(v))
 
 /** Group: Typeless functions
     Custom-prototype: false
@@ -297,9 +332,27 @@ ITER_API int vec_insert(
 /** Inserts 'count' items at the end of the item buffer. */
 ITER_API int vec_push(vec_t *v, void *items, size_t count, size_t size);
 
+/** Inserts 'count' items at the start of the item buffer. */
+ITER_INLINE int vec_unshift(vec_t *v, void *items, size_t count, size_t size) {
+    return vec_insert(v, items, 0, count, size);
+}
+
 /** Inserts 'count' copies of 'item' at index 'i' */
 ITER_API int vec_fill(
     vec_t *v, void *item, size_t i, size_t count, size_t size
 );
+
+/** Removes 'count' items starting at index 'i'. */
+ITER_API int vec_remove(
+    vec_t *v, void *out, size_t i, size_t count, size_t size
+);
+
+/** Removes 'count' items at the end of the item buffer. */
+ITER_API int vec_pop(vec_t *v, void *out, size_t count, size_t size);
+
+/** Removes 'count' items at the start of the item buffer. */
+ITER_INLINE int vec_shift(vec_t *v, void *out, size_t count, size_t size) {
+    return vec_remove(v, out, 0, count, size);
+}
 
 #endif

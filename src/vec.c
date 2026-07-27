@@ -212,3 +212,34 @@ int vec_fill(vec_t *v, void *item, size_t i, size_t count, size_t size) {
         memcpy(VEC_OFFSET(v, (i + j) * size), item, size);
     return ITER_OK;
 }
+
+int vec_remove(vec_t *v, void *out, size_t i, size_t count, size_t size) {
+    if (!v || size == 0)
+        return ITER_THROW_EINVAL;
+    if (vec__mul(i, size) || vec__mul(count, size))
+        return ITER_THROW_EOVERFLOW;
+
+    size_t off = i * size;
+    size_t len = count * size;
+
+    if (off + len > v->len)
+        return ITER_THROW_EINVAL;
+
+    if (out)
+        memcpy(out, VEC_OFFSET(v, off), len);
+
+    if (off + len < v->len) {
+        memmove(
+            VEC_OFFSET(v, off), VEC_OFFSET(v, off + len), v->len - off - len
+        );
+    }
+
+    v->len -= len;
+    return ITER_OK;
+}
+
+int vec_pop(vec_t *v, void *out, size_t count, size_t size) {
+    if (!v || size == 0)
+        return ITER_THROW_EINVAL;
+    return vec_remove(v, out, v->len / size, count, size);
+}
