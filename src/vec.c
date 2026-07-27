@@ -213,6 +213,21 @@ int vec_fill(vec_t *v, void *item, size_t i, size_t count, size_t size) {
     return ITER_OK;
 }
 
+int vec_insertp(vec_t *v, void **items, size_t i, size_t count, size_t size) {
+    if (!v || !items || size == 0)
+        return ITER_THROW_EINVAL;
+
+    int rc;
+
+    if ((rc = reserve_region(v, i, count, size)))
+        return rc;
+
+    v->len += count * size;
+    for (size_t j = 0; j < count; j++)
+        memcpy(VEC_OFFSET(v, (i + j) * size), items[j], size);
+    return ITER_OK;
+}
+
 int vec_remove(vec_t *v, void *out, size_t i, size_t count, size_t size) {
     if (!v || size == 0)
         return ITER_THROW_EINVAL;
@@ -242,4 +257,55 @@ int vec_pop(vec_t *v, void *out, size_t count, size_t size) {
     if (!v || size == 0)
         return ITER_THROW_EINVAL;
     return vec_remove(v, out, v->len / size, count, size);
+}
+
+static int region_overlap(size_t i, size_t j, size_t ilen, size_t jlen) {
+    return (i >= j && i < j + jlen) || (j >= i && j < i + ilen);
+}
+
+int vec_swap(vec_t *v, size_t i, size_t j, size_t count, size_t size) {
+    if (!v || size == 0)
+        return ITER_THROW_EINVAL;
+
+    if (vec__mul(i, size) || vec__mul(j, size) || vec__mul(count, size))
+        return ITER_THROW_EOVERFLOW;
+
+    size_t ioff = i * size;
+    size_t joff = j * size;
+    size_t len = count * size;
+
+    if (ioff + len > v->len || joff + len > v->len)
+        return ITER_THROW_EINVAL;
+
+    if (region_overlap(ioff, joff, len, len))
+        return ITER_THROW_EINVAL;
+
+    if (vec_reserve(v, count, size))
+        return ITER_THROW_ENOMEM;
+
+    memcpy(VEC_OFFSET(v, v->len), VEC_OFFSET(v, ioff), len);
+    memcpy(VEC_OFFSET(v, ioff), VEC_OFFSET(v, joff), len);
+    memcpy(VEC_OFFSET(v, joff), VEC_OFFSET(v, v->len), len);
+    return ITER_OK;
+}
+
+int vec_swap_remove(vec_t *v, void *out, size_t i, size_t count, size_t size) {
+    if (!v || size == 0)
+        return ITER_THROW_EINVAL;
+
+    if (vec__mul(i, size) || vec__mul(count, size))
+        return ITER_THROW_EOVERFLOW;
+
+    size_t off = i * size;
+    size_t len = count * size;
+
+    if (off + len > v->len)
+        return ITER_THROW_EINVAL;
+
+    if (off + len < v->len) {
+        memmove(VEC_OFFSET(v, off), VEC_OFFSET(v, v->len - len), len);
+    }
+
+    v->len -= len;
+    return ITER_OK;
 }

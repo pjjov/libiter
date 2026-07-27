@@ -37,6 +37,9 @@
 /** Checks if given item has the vector's subtype. */
 #define vec_check(VEC, ITEM) generic_check_item(vec_t, VEC, ITEM)
 
+/** Checks if given item has the vector's subtype as double pointer. */
+#define vec_checkd(VEC, ITEM) generic_check_item_d(vec_t, VEC, ITEM)
+
 /** Group: Allocation functions
     Custom-prototype: true
 */
@@ -186,6 +189,16 @@
 #define vecunshift(v, items, count)                                          \
     vec_unshift(vec_base(v), vec_check(v, items), (count), vec_type_size(v))
 
+/** int vecinsertp(vec(T) v, T **items, size_t i, size_t count);
+
+    Inserts 'count' items at index 'i', by pointer.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecinsertp(v, items, i, count)                                    \
+    vec_insertp(                                                          \
+        vec_base(v), vec_checkd(v, items), (i), (count), vec_type_size(v) \
+    )
+
 /** int vecfill(vec(T) v, T *item, size_t i, size_t count);
 
     Inserts 'count' copies of 'item' at index 'i'.
@@ -220,6 +233,24 @@
 */
 #define vecshift(v, out, count)                              \
     vec_shift(vec_base(v), (out), (count), vec_type_size(v))
+
+/** int vecswap(vec(T) v, size_t i, size_t j, size_t count);
+
+    Swaps 'count' items starting at indices 'i' and 'j'.
+    > Space past the last item is used as a temporary buffer.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecswap(v, i, j, count)                                \
+    vec_swap(vec_base(v), (i), (j), (count), vec_type_size(v))
+
+/** int vecswap_remove(vec(T) v, T *out, size_t i, size_t count);
+
+    Removes 'count' items start at index 'i', by swapping items.
+    If 'out' is not `NULL`, removed items are copied to it.
+    Throws: ITER_EINVAL, ITER_EOVERFLOW.
+*/
+#define vecswap_remove(v, out, i, count)                                \
+    vec_swap_remove(vec_base(v), (out), (i), (count), vec_type_size(v))
 
 /** Group: Typeless functions
     Custom-prototype: false
@@ -337,6 +368,11 @@ ITER_INLINE int vec_unshift(vec_t *v, void *items, size_t count, size_t size) {
     return vec_insert(v, items, 0, count, size);
 }
 
+/** Inserts 'count' items starting at index 'i' by reference. */
+ITER_API int vec_insertp(
+    vec_t *v, void **items, size_t i, size_t count, size_t size
+);
+
 /** Inserts 'count' copies of 'item' at index 'i' */
 ITER_API int vec_fill(
     vec_t *v, void *item, size_t i, size_t count, size_t size
@@ -354,5 +390,13 @@ ITER_API int vec_pop(vec_t *v, void *out, size_t count, size_t size);
 ITER_INLINE int vec_shift(vec_t *v, void *out, size_t count, size_t size) {
     return vec_remove(v, out, 0, count, size);
 }
+
+/** Swaps 'count' items starting at indices 'i' and 'j'. */
+ITER_API int vec_swap(vec_t *v, size_t i, size_t j, size_t count, size_t size);
+
+/** Removes 'count' items by swapping items. */
+ITER_API int vec_swap_remove(
+    vec_t *v, void *out, size_t i, size_t count, size_t size
+);
 
 #endif

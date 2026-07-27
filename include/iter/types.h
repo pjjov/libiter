@@ -76,7 +76,16 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
             - T_CNTR - Explicit type of the container, or <void>.
             - CNTR - Pointer to the actual container.
         */
-        #define generic_item_ptr(T_CNTR, CNTR) typeof((*(CNTR))((T_CNTR *)0, 0))
+        #define generic_item_ptr(T_CNTR, CNTR) typeof((*(CNTR))((T_CNTR *)0))
+
+        /** Extracts the item type with a double pointer of the given container.
+
+            Parameters:
+            - T_CNTR - Explicit type of the container, or <void>.
+            - CNTR - Pointer to the actual container.
+        */
+        #define generic_item_dptr(T_CNTR, CNTR)      \
+            typeof(typeof((*(CNTR))((T_CNTR *)0)) *)
 
         /** Extracts the item type with a pointer of the given container.
 
@@ -94,8 +103,18 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
             - CNTR - Pointer to the actual container.
             - ITEM - Pointer to the given item.
         */
-        #define generic_check_item(T_CNTR, CNTR, ITEM)           \
-            pf_check_type(generic_value_ptr(T_CNTR, CNTR), ITEM)
+        #define generic_check_item(T_CNTR, CNTR, ITEM)          \
+            pf_check_type(generic_item_ptr(T_CNTR, CNTR), ITEM)
+
+        /** Check if given double-pointer item's type matches container's subtype.
+
+            Parameters:
+            - T_CNTR - Explicit type of the container, or <void>.
+            - CNTR - Pointer to the actual container.
+            - ITEM - Pointer to the given item.
+        */
+        #define generic_check_item_d(T_CNTR, CNTR, ITEM)         \
+            pf_check_type(generic_item_dptr(T_CNTR, CNTR), ITEM)
 
         /** Check if given container is of the given type (not subtype).
 
@@ -103,10 +122,10 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
             - T_CNTR - Explicit type of the container, or <void>.
             - CNTR - Pointer to the actual container.
         */
-        #define generic_check_container(T_CNTR, CNTR)                        \
-            ((T_CNTR *)pf_check_type(                                        \
-                generic_container(T_CNTR, generic_value_type(T_CNTR, CNTR)), \
-                CNTR                                                         \
+        #define generic_check_container(T_CNTR, CNTR)                       \
+            ((T_CNTR *)pf_check_type(                                       \
+                generic_container(T_CNTR, generic_item_type(T_CNTR, CNTR)), \
+                CNTR                                                        \
             ))
 
     #endif
