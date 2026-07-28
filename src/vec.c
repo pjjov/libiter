@@ -70,6 +70,64 @@ vec_t *vec_init(vec_t *out, allocator_t *alloc) {
     return out;
 }
 
+vec_t *vec_new_array(
+    void *array, size_t length, allocator_t *allocator, size_t size
+) {
+    vec_t *out;
+
+    if (!(out = vec_new(allocator)))
+        return NULL;
+
+    if (vec_insert(out, array, 0, length, size)) {
+        vec_free(out);
+        return NULL;
+    }
+
+    return out;
+}
+
+vec_t *vec_init_array(
+    void *array, size_t length, vec_t *out, allocator_t *allocator, size_t size
+) {
+    vec_init(out, allocator);
+
+    if (vec_insert(out, array, 0, length, size)) {
+        vec_free(out);
+        return NULL;
+    }
+
+    return out;
+}
+
+vec_t *vec_new_arrayp(
+    void **array, size_t length, allocator_t *allocator, size_t size
+) {
+    vec_t *out;
+
+    if (!(out = vec_new(allocator)))
+        return NULL;
+
+    if (vec_insertp(out, array, 0, length, size)) {
+        vec_free(out);
+        return NULL;
+    }
+
+    return out;
+}
+
+vec_t *vec_init_arrayp(
+    void **array, size_t length, vec_t *out, allocator_t *allocator, size_t size
+) {
+    vec_init(out, allocator);
+
+    if (vec_insertp(out, array, 0, length, size)) {
+        vec_free(out);
+        return NULL;
+    }
+
+    return out;
+}
+
 void *vec_unwrap(vec_t *v) {
     if (!v)
         return NULL;

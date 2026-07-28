@@ -51,11 +51,49 @@
 */
 #define vecnew(T, allocator) ((vec(T))vec_new((allocator)))
 
+/** vec(T) vecnew_array(T *array, size_t length, allocator_t *allocator);
+
+    Creates a new instance of `vec(T)`, allocated with 'allocator'.
+    The content of 'array' is copied to the resulting vector.
+*/
+#define vecnew_array(array, length, allocator)                          \
+    ((vec(typeof(*array)))                                              \
+         vec_new_array((array), (length), (allocator), sizeof(*array)))
+
+/** vec(T) vecnew_arrayp(T **array, size_t length, allocator_t *allocator);
+
+    Creates a new instance of `vec(T)`, allocated with 'allocator'.
+    The content of 'array' is copied to the resulting vector.
+*/
+#define vecnew_arrayp(array, length, allocator)                           \
+    ((vec(typeof(**array)))                                               \
+         vec_new_arrayp((array), (length), (allocator), sizeof(**array)))
+
 /** vec(T) vecinit(type T, vec_t *out, allocator_t *allocator);
 
     Initializes 'out' to a new instance of `vec(T)`, allocated with 'allocator'.
 */
-#define vecinit(T, out, allocator) ((vec(T))vec_new((out), (allocator)))
+#define vecinit(T, out, allocator) ((vec(T))vec_init((out), (allocator)))
+
+/** vec(T) vecinit_array(T *array, size_t length, vec_t *out, allocator_t *allocator);
+
+    Initializes 'out' to a new instance of `vec(T)`, allocated with 'allocator'.
+    The content of 'array' is copied to the resulting vector.
+*/
+#define vecinit_array(array, length, out, allocator)          \
+    ((vec(typeof(*array)))vec_init_array(                     \
+        (array), (length), (out), (allocator), sizeof(*array) \
+    ))
+
+/** vec(T) vecinit_arrayp(T **array, size_t length, vec_t *out, allocator_t *allocator);
+
+    Initializes 'out' to a new instance of `vec(T)`, allocated with 'allocator'.
+    The content of 'array' is copied to the resulting vector.
+*/
+#define vecinit_arrayp(array, length, out, allocator)          \
+    ((vec(typeof(**array)))vec_init_arrayp(                    \
+        (array), (length), (out), (allocator), sizeof(**array) \
+    ))
 
 /** T *vecunwrap(vec(T) v);
 
@@ -263,8 +301,28 @@
 /** Creates a new instance of `vec_t`. */
 ITER_API vec_t *vec_new(allocator_t *allocator);
 
+/** Creates a new instance of `vec_t`. Copies the content of 'array'. */
+ITER_API vec_t *vec_new_array(
+    void *array, size_t length, allocator_t *allocator, size_t size
+);
+
+/** Creates a new instance of `vec_t`. Copies the content of 'array'. */
+ITER_API vec_t *vec_new_arrayp(
+    void **array, size_t length, allocator_t *allocator, size_t size
+);
+
 /** Initializes 'out' and returns it. */
 ITER_API vec_t *vec_init(vec_t *out, allocator_t *allocator);
+
+/** Initializes 'out' and returns it. Copies the content of 'array'. */
+ITER_API vec_t *vec_init_array(
+    void *array, size_t length, vec_t *out, allocator_t *allocator, size_t size
+);
+
+/** Initializes 'out' and returns it. Copies the content of 'array'. */
+ITER_API vec_t *vec_init_arrayp(
+    void **array, size_t length, vec_t *out, allocator_t *allocator, size_t size
+);
 
 /** Returns the item buffer and frees 'v'. */
 ITER_API void *vec_unwrap(vec_t *v);
