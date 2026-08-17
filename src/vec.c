@@ -41,9 +41,6 @@ allocator_t *vec_allocator(vec_t *v) {
 }
 
 vec_t *vec_new(allocator_t *alloc) {
-    if (!can_heap_alloc(alloc))
-        return ITER_THROW_NULL(ITER_EINVAL);
-
     if (!alloc)
         alloc = libiter_allocator;
 
@@ -58,7 +55,7 @@ vec_t *vec_new(allocator_t *alloc) {
 }
 
 vec_t *vec_init(vec_t *out, allocator_t *alloc) {
-    if (!out)
+    if (!out || !can_heap_alloc(alloc))
         return ITER_THROW_NULL(ITER_EINVAL);
 
     if (!alloc)

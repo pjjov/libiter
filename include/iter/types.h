@@ -16,8 +16,8 @@
         #ifndef ITER_HASH_TYPE
             #include <limits.h>
             #define ITER_HASH_TYPE size_t
-            #define HASH_MIN SIZE_MIN
-            #define HASH_MAX SIZE_MAX
+            #define ITER_HASH_MIN SIZE_MIN
+            #define ITER_HASH_MAX SIZE_MAX
         #endif
 
 enum libiter_bool {
@@ -43,10 +43,6 @@ enum libiter_error {
 };
 
 typedef struct allocator_t allocator_t;
-
-typedef ITER_HASH_TYPE hash_t;
-typedef hash_t(hasher_fn)(const void *buffer, size_t length);
-typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
 
     #endif
 
@@ -132,6 +128,7 @@ typedef hash_t(hash_fn)(const void *item, const void *other, hasher_fn *hasher);
 
     #ifndef LIBITER_NEED_TYPE
         #define LIBITER_NEED_VEC
+        #define LIBITER_NEED_MAP
     #else
         #undef LIBITER_NEED_TYPE
     #endif
@@ -150,7 +147,35 @@ typedef struct vec_t {
 
     #endif
 
-    #if defined(LIBITER_HAS_VEC)
+    #if defined(LIBITER_NEED_MAP) && !defined(LIBITER_HAS_MAP)
+
+        #define LIBITER_HAS_MAP
+        #define map(T) generic_container(map_t, T)
+
+typedef ITER_HASH_TYPE map_hash_t;
+typedef map_hash_t(map_hash_fn)(const void *item, const void *other);
+typedef int(map_each_fn)(void *item, void *user);
+
+typedef struct map_t {
+    size_t cap;
+    size_t count;
+    void *meta;
+
+    size_t storageTop;
+    size_t itemSize;
+    size_t itemAlign;
+    void *items;
+
+    map_hash_fn *hash;
+
+    size_t bufferSize;
+    void *buffer;
+    allocator_t *alloc;
+} map_t;
+
+    #endif
+
+    #if defined(LIBITER_HAS_VEC) && defined(LIBITER_HAS_MAP)
         #define LIBITER_TYPES_H
     #endif
 
