@@ -39,6 +39,129 @@ static inline void mark_heap_alloc(map_t *out, allocator_t *alloc) {
     out->alloc = (void *)(((uintptr_t)alloc) | 1);
 }
 
+enum {
+    META_EMPTY = 0x00,
+    META_USED = 0x01,
+    META_DEAD = 0x02,
+    STORAGE_EMPTY = 0x00,
+    STORAGE_USED = 0x10,
+
+    META_MASK = 0xF,
+    STORAGE_MASK = 0xF0,
+};
+
+struct meta {
+    uint8_t kind;
+    uint8_t tag;
+};
+
+struct meta8 {
+    struct meta base;
+    uint8_t index;
+};
+
+struct meta16 {
+    struct meta base;
+    uint16_t index;
+};
+
+struct meta32 {
+    struct meta base;
+    uint32_t index;
+};
+
+struct meta64 {
+    struct meta base;
+    uint64_t index;
+};
+
+struct meta_iter {
+    map_t *map;
+    map_hash_fn *fn;
+
+    const void *item;
+    uint8_t tag;
+
+    size_t mask;
+    size_t slot;
+};
+
+static int meta_is_used(struct meta *m) {
+    return (m->kind & META_MASK) == META_USED;
+}
+
+static int meta_is_empty(struct meta *m) {
+    return (m->kind & META_MASK) == META_EMPTY;
+}
+
+static int meta_is_dead(struct meta *m) {
+    return (m->kind & META_MASK) == META_DEAD;
+}
+
+static int meta_cmp_tag(struct meta *m, uint8_t tag) { return m->tag == tag; }
+
+static int meta_cmp_item(struct meta_iter *iter, const void *item) {
+    return 0 == iter->fn(iter->item, item);
+}
+
+static void meta_set_kind(struct meta *m, uint8_t kind) {
+    m->kind = kind | (m->kind & STORAGE_MASK);
+}
+
+static void meta_set_tag(struct meta *m, uint8_t tag) { m->tag = tag; }
+
+static int meta_stride(size_t cap) {
+    if (cap <= UINT8_MAX)
+        return sizeof(struct meta8);
+    if (cap <= UINT16_MAX)
+        return sizeof(struct meta16);
+    if (cap <= UINT32_MAX)
+        return sizeof(struct meta32);
+    return sizeof(struct meta64);
+}
+
+static int meta_size(size_t cap) {
+    if (cap <= UINT8_MAX)
+        return sizeof(uint8_t);
+    if (cap <= UINT16_MAX)
+        return sizeof(uint16_t);
+    if (cap <= UINT32_MAX)
+        return sizeof(uint32_t);
+    return sizeof(uint64_t);
+}
+
+static struct meta8 *meta_slot8(void *meta, size_t slot) {
+    return &((struct meta8 *)meta)[slot];
+}
+
+static struct meta16 *meta_slot16(void *meta, size_t slot) {
+    return &((struct meta16 *)meta)[slot];
+}
+
+static struct meta32 *meta_slot32(void *meta, size_t slot) {
+    return &((struct meta32 *)meta)[slot];
+}
+
+static struct meta64 *meta_slot64(void *meta, size_t slot) {
+    return &((struct meta64 *)meta)[slot];
+}
+
+static struct meta *meta_slot(map_t *map, size_t slot) {
+    switch (meta_size(map->cap)) {
+    case sizeof(uint8_t):
+        return &meta_slot8(map->meta, slot)->base;
+    case sizeof(uint16_t):
+        return &meta_slot16(map->meta, slot)->base;
+    case sizeof(uint32_t):
+        return &meta_slot32(map->meta, slot)->base;
+    case sizeof(uint64_t):
+        return &meta_slot64(map->meta, slot)->base;
+    default:
+        PF_UNREACHABLE;
+        return NULL;
+    }
+}
+
 allocator_t *map_allocator(map_t *m) {
     if (!m)
         return NULL;
