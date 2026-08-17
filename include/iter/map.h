@@ -65,6 +65,32 @@
 */
 #define mapfree(map) map_free(map_base(map))
 
+/** Group: Properties */
+
+/** allocator_t *mapallocator(map(T) m);
+
+    Returns the allocator used by 'm'.
+*/
+#define mapallocator(m) map_allocator(map_base(m))
+
+/** int mapisempty(map(T) map);
+
+    Checks if 'map' is empty.
+*/
+#define mapisempty(map) map_isempty(map_base(map))
+
+/** size_t mapcount(map(T) map);
+
+    Returns the number of items present in 'map'.
+*/
+#define mapcount(map) map_count(map_base(map))
+
+/** size_t mapcap(map(T) map);
+
+    Returns the number of slots reserved in 'map'.
+*/
+#define mapcap(map) map_cap(map_base(map))
+
 /** Group: Typeless functions
     Custom-prototype: false
 */
@@ -85,5 +111,17 @@ ITER_API map_t *map_init(
 
 /** Frees the item buffer and 'map' object. */
 ITER_API void map_free(map_t *m);
+
+/** Checks if count is 0. */
+ITER_INLINE int map_isempty(map_t *m) { return !m || m->count == 0; }
+
+/** Returns the number of items present. */
+ITER_INLINE size_t map_count(map_t *m) { return m ? m->count : 0; }
+
+/** Returns the number of slots reserved. */
+ITER_INLINE size_t map_cap(map_t *m) { return m ? m->cap : 0; }
+
+/** Returns allocator used by 'm'. */
+ITER_API allocator_t *map_allocator(map_t *m);
 
 #endif
