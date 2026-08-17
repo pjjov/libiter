@@ -65,6 +65,13 @@
 */
 #define mapfree(map) map_free(map_base(map))
 
+/** int mapreserve(map(T) m, size_t count);
+
+    Reserves space for at least 'count' items.
+    Throws: ITER_EINVAL, ITER_ENOMEM.
+*/
+#define mapreserve(map, count) map_reserve(map_base(map), (count))
+
 /** Group: Properties */
 
 /** allocator_t *mapallocator(map(T) m);
@@ -183,6 +190,9 @@ ITER_API map_t *map_init(
 
 /** Frees the item buffer and 'map' object. */
 ITER_API void map_free(map_t *m);
+
+/** Reserves space for at least 'count' items. */
+ITER_API int map_reserve(map_t *m, size_t count);
 
 /** Checks if count is 0. */
 ITER_INLINE int map_isempty(map_t *m) { return !m || m->count == 0; }

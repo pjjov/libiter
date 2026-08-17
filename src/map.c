@@ -542,3 +542,95 @@ int map_each(map_t *map, map_each_fn *fn, void *user) {
         return ITER_THROW(rc, NULL);
     return ITER_OK;
 }
+
+static int resize_empty(map_t *map, size_t capacity) {
+    if (map->buffer)
+        deallocate(map->alloc, map->buffer, map->bufferSize);
+
+    size_t metaStride = meta_stride(capacity);
+
+    struct join_alloc blocks[] = {
+        {
+            .size = capacity * metaStride,
+            .align = 0,
+        },
+        {
+            .size = capacity * map->itemSize,
+            .align = map->itemAlign,
+        },
+    };
+
+    size_t bufferSize;
+    void *buffer = allocate_joined(map->alloc, blocks, 2, &bufferSize);
+
+    if (!buffer)
+        return ITER_ENOMEM;
+
+    map->meta = blocks[0].buffer;
+    map->items = blocks[1].buffer;
+    memset(map->meta, 0, capacity * metaStride);
+
+    map->buffer = buffer;
+    map->bufferSize = bufferSize;
+
+    map->cap = capacity;
+    map->count = 0;
+    map->storageTop = 0;
+
+    return ITER_OK;
+}
+
+static int resize_non_empty_each_fn(void *item, void *user) {
+    map_t *map = user;
+    return map_insert(map, item);
+}
+
+static int resize_non_empty(map_t *map, size_t capacity) {
+    map_t tmp = *map;
+    tmp.buffer = NULL;
+
+    if (resize_empty(&tmp, capacity))
+        return ITER_ENOMEM;
+
+    if (map_each(map, resize_non_empty_each_fn, &tmp)) {
+        deallocate(map->alloc, tmp.buffer, tmp.bufferSize);
+        return ITER_ENOMEM;
+    }
+
+    deallocate(map->alloc, map->buffer, map->bufferSize);
+    *map = tmp;
+    return ITER_OK;
+}
+
+static int map_resize(map_t *map, size_t capacity) {
+    if (!map || capacity == 0)
+        return ITER_THROW_ENOMEM;
+
+    int rc = map->count == 0 ? resize_empty(map, capacity)
+                             : resize_non_empty(map, capacity);
+
+    if (rc)
+        return ITER_THROW(rc, NULL);
+    return ITER_OK;
+}
+
+static size_t map_threshold(map_t *map, size_t req) {
+    if (map->storageTop + req >= map->cap) /* tombstone check */
+        return ITER_TRUE;
+    return map->count + req >= map->cap * MAP_DENSITY;
+}
+
+static size_t map_growth(map_t *map, size_t req) {
+    size_t cap = (map->cap + req) * MAP_GROWTH;
+    return pf_pow2ceil_size_t(cap);
+}
+
+int map_reserve(map_t *map, size_t count) {
+    if (!map || count == 0)
+        return ITER_THROW_EINVAL;
+
+    if (map_threshold(map, count))
+        return map_resize(map, map_growth(map, count));
+
+    return ITER_OK;
+}
