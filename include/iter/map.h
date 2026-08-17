@@ -91,6 +91,78 @@
 */
 #define mapcap(map) map_cap(map_base(map))
 
+/** Group: Main operations */
+
+/** int mapget(map(T) map, const T *key, T *out);
+
+    Copies the item inside 'map' that is equal to the passed 'key',
+    which is only used for hashing and comparison.
+
+    Parameters 'key' and 'out' can have identical values.
+
+    Returns: ITER_EINVAL, ITER_ENOENT.
+    Throws: ITER_EINVAL.
+*/
+#define mapget(map, item, out)                                \
+    (map_get(map_base(map), map_check(item), map_check(out)))
+
+/** T *mapptr(map(T) map, const T *key);
+
+    Returns the pointer to the item inside 'map' that is equal to the passed
+    'key', which is only used for hashing and comparison.
+
+    Returns: `NULL` if not found.
+    Throws: ITER_EINVAL.
+*/
+#define mapptr(map, item) (map_ptr(map_base(map), map_check(item)))
+
+/** int mapset(map(T) map, const T *item);
+
+    Inserts or updates the requested item inside 'map' by copying 'item'.
+
+    Returns/Throws: ITER_EINVAL.
+*/
+#define mapset(map, item) map_set(map_base(map), map_check(item))
+
+/** int mapinsert(map(T) map, const T *item);
+
+    Inserts the requested item inside 'map' by copying 'item'.
+
+    Returns: ITER_EINVAL, ITER_EEXIST.
+    Throws: ITER_EINVAL.
+*/
+#define mapinsert(map, item) map_insert(map_base(map), map_check(item))
+
+/** int mapupdate(map(T) map, const T *item);
+
+    Updates the requested item inside 'map' by copying 'item'.
+
+    Returns: ITER_EINVAL, ITER_ENOENT.
+    Throws: ITER_EINVAL.
+*/
+#define mapupdate(map, item) map_update(map_base(map), map_check(item))
+
+/** int mapremove(map(T) map, const T *key, T *out);
+
+    Removes the requested item inside 'map'.
+    If 'out' is not `NULL`, the removed item is copied to it.
+
+    Returns: ITER_EINVAL, ITER_ENOENT.
+    Throws: ITER_EINVAL.
+*/
+#define mapremove(map, item, out)                     \
+    map_remove(map_base(map), map_check(item), (out))
+
+/** int mapeach(map(T) map, map_each_fn *fn, void *user);
+
+    Calls 'fn' for each item in 'map'. If the callback returns a non-zero value,
+    the iteration is interrupted and the function exits immediately.
+
+    Returns: ITER_EINVAL, ITER_EINTR.
+    Throws: ITER_EINVAL.
+*/
+#define mapeach(map, fn, user) map_each(map_base(map), (fn), (user))
+
 /** Group: Typeless functions
     Custom-prototype: false
 */
@@ -123,5 +195,26 @@ ITER_INLINE size_t map_cap(map_t *m) { return m ? m->cap : 0; }
 
 /** Returns allocator used by 'm'. */
 ITER_API allocator_t *map_allocator(map_t *m);
+
+/** Searches for item by it's key and copies it to 'out'. */
+ITER_API int map_get(map_t *m, const void *key, void *out);
+
+/** Searches for item by it's key and returns it's pointer. */
+ITER_API void *map_ptr(map_t *m, const void *key);
+
+/** Inserts or updates item in 'map' by copying. */
+ITER_API int map_set(map_t *m, const void *item);
+
+/** Inserts item in 'map' by copying. */
+ITER_API int map_insert(map_t *m, const void *item);
+
+/** Updates item in 'map' by copying. */
+ITER_API int map_update(map_t *m, const void *item);
+
+/** Removes the item in 'map'. */
+ITER_API int map_remove(map_t *m, const void *key, void *out);
+
+/** Calls 'fn' for each item present in 'map'. */
+ITER_API int map_each(map_t *map, map_each_fn *fn, void *user);
 
 #endif

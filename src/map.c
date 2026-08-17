@@ -440,3 +440,105 @@ void map_free(map_t *m) {
     if (is_heap_alloc(m))
         deallocate(alloc, m, sizeof(*m));
 }
+
+int map_get(map_t *map, const void *item, void *out) {
+    void *slot;
+
+    if (!(slot = map_ptr(map, item)))
+        return ITER_ENOENT;
+
+    if (out)
+        memcpy(out, slot, map->itemSize);
+
+    return ITER_OK;
+}
+
+void *map_ptr(map_t *map, const void *item) {
+    if (!map || !item)
+        return ITER_THROW_NULL(ITER_EINVAL);
+
+    size_t storageIndex;
+    int rc;
+
+    if ((rc = meta_get(map, item, &storageIndex)))
+        return NULL;
+
+    return storage_get(map, storageIndex);
+}
+
+int map_set(map_t *map, const void *item) {
+    if (!map || !item)
+        return ITER_THROW_EINVAL;
+
+    if (map_reserve(map, 1))
+        return ITER_ENOMEM;
+
+    size_t reservedStorageIndex = storage_reserve(map);
+    size_t storageIndex;
+    int rc;
+
+    if ((rc = meta_set(map, item, &storageIndex, reservedStorageIndex)))
+        return ITER_THROW(rc, NULL);
+
+    storage_set(map, item, storageIndex);
+    return ITER_OK;
+}
+
+int map_insert(map_t *map, const void *item) {
+    if (!map || !item)
+        return ITER_THROW_EINVAL;
+
+    if (map_reserve(map, 1))
+        return ITER_ENOMEM;
+
+    size_t storageIndex = storage_reserve(map);
+    int rc;
+
+    if ((rc = meta_insert(map, item, storageIndex)))
+        return ITER_THROW(rc, NULL);
+
+    storage_set(map, item, storageIndex);
+    return ITER_OK;
+}
+
+int map_update(map_t *map, const void *item) {
+    if (!map || !item)
+        return ITER_THROW_EINVAL;
+
+    size_t storageIndex;
+    int rc;
+
+    if ((rc = meta_update(map, item, &storageIndex)))
+        return ITER_THROW(rc, NULL);
+
+    storage_set(map, item, storageIndex);
+    return ITER_OK;
+}
+
+int map_remove(map_t *map, const void *item, void *out) {
+    if (!map || !item)
+        return ITER_THROW_EINVAL;
+
+    size_t storageIndex;
+    int rc;
+
+    if ((rc = meta_remove(map, item, &storageIndex)))
+        return ITER_THROW(rc, NULL);
+
+    if (out)
+        memcpy(out, storage_get(map, storageIndex), map->itemSize);
+
+    storage_remove(map, storageIndex);
+    return ITER_OK;
+}
+
+int map_each(map_t *map, map_each_fn *fn, void *user) {
+    if (!map || !fn)
+        return ITER_THROW_EINVAL;
+
+    int rc = storage_each(map, fn, user);
+
+    if (rc)
+        return ITER_THROW(rc, NULL);
+    return ITER_OK;
+}
