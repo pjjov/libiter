@@ -50,6 +50,8 @@ enum {
     STORAGE_MASK = 0xF0,
 };
 
+#define TAG_MASK (sizeof(map_hash_t) * 8 - 8)
+
 struct meta {
     uint8_t kind;
     uint8_t tag;
@@ -215,6 +217,172 @@ static int storage_each(map_t *map, map_each_fn *fn, void *user) {
         visited++;
     }
 
+    return ITER_OK;
+}
+
+static void meta_iter_init(
+    struct meta_iter *iter, map_t *map, const void *item
+) {
+    map_hash_t hash = map->hash(item, NULL);
+
+    iter->map = map;
+    iter->fn = map->hash;
+    iter->item = item;
+    iter->mask = map->cap - 1;
+    iter->slot = hash & iter->mask;
+    iter->tag = (uint8_t)(hash >> TAG_MASK);
+}
+
+static void meta_iter_set(struct meta_iter *iter, size_t storageIndex) {
+    struct meta *base;
+
+    switch (meta_size(iter->map->cap)) {
+    case sizeof(uint8_t): {
+        struct meta8 *slot = meta_slot8(iter->map->meta, iter->slot);
+        slot->index = storageIndex;
+        base = &slot->base;
+        break;
+    }
+    case sizeof(uint16_t): {
+        struct meta16 *slot = meta_slot16(iter->map->meta, iter->slot);
+        slot->index = storageIndex;
+        base = &slot->base;
+        break;
+    }
+    case sizeof(uint32_t): {
+        struct meta32 *slot = meta_slot32(iter->map->meta, iter->slot);
+        slot->index = storageIndex;
+        base = &slot->base;
+        break;
+    }
+    case sizeof(uint64_t): {
+        struct meta64 *slot = meta_slot64(iter->map->meta, iter->slot);
+        slot->index = storageIndex;
+        base = &slot->base;
+        break;
+    }
+    default:
+        PF_UNREACHABLE;
+        return;
+    }
+
+    meta_set_kind(base, META_USED);
+    meta_set_tag(base, iter->tag);
+}
+
+static struct meta *meta_iter_get(
+    struct meta_iter *iter, size_t *storageIndex
+) {
+    switch (meta_size(iter->map->cap)) {
+    case sizeof(uint8_t): {
+        struct meta8 *slot = &((struct meta8 *)iter->map->meta)[iter->slot];
+        *storageIndex = slot->index;
+        return &slot->base;
+    }
+    case sizeof(uint16_t): {
+        struct meta16 *slot = &((struct meta16 *)iter->map->meta)[iter->slot];
+        *storageIndex = slot->index;
+        return &slot->base;
+    }
+    case sizeof(uint32_t): {
+        struct meta32 *slot = &((struct meta32 *)iter->map->meta)[iter->slot];
+        *storageIndex = slot->index;
+        return &slot->base;
+    }
+    case sizeof(uint64_t): {
+        struct meta64 *slot = &((struct meta64 *)iter->map->meta)[iter->slot];
+        *storageIndex = slot->index;
+        return &slot->base;
+    }
+    default:
+        PF_UNREACHABLE;
+        return NULL;
+    }
+}
+
+static struct meta *meta_iter_next(
+    struct meta_iter *iter, size_t *storageIndex
+) {
+    while (1) {
+        struct meta *m = meta_iter_get(iter, storageIndex);
+
+        if (meta_is_empty(m))
+            return m;
+
+        if (meta_is_dead(m)) {
+            iter->slot = (iter->slot + 1) & iter->mask;
+            continue;
+        }
+
+        void *item = storage_get(iter->map, *storageIndex);
+
+        if (meta_cmp_tag(m, iter->tag) && meta_cmp_item(iter, item))
+            return m;
+
+        iter->slot = (iter->slot + 1) & iter->mask;
+    }
+}
+
+static int meta_get(map_t *map, const void *item, size_t *storageIndex) {
+    struct meta_iter iter;
+    meta_iter_init(&iter, map, item);
+
+    struct meta *m = meta_iter_next(&iter, storageIndex);
+    return meta_is_empty(m) ? ITER_OK : ITER_ENOENT;
+}
+
+static int meta_set(
+    map_t *map, const void *item, size_t *storageIndex, size_t newStorageIndex
+) {
+    struct meta_iter iter;
+    meta_iter_init(&iter, map, item);
+
+    struct meta *m = meta_iter_next(&iter, storageIndex);
+
+    if (meta_is_empty(m))
+        *storageIndex = newStorageIndex;
+
+    meta_iter_set(&iter, *storageIndex);
+    return ITER_OK;
+}
+
+static int meta_insert(map_t *map, const void *item, size_t newStorageIndex) {
+    struct meta_iter iter;
+    meta_iter_init(&iter, map, item);
+
+    size_t storageIndex;
+    struct meta *m = meta_iter_next(&iter, &storageIndex);
+
+    if (!meta_is_empty(m))
+        return ITER_EEXIST;
+
+    meta_iter_set(&iter, newStorageIndex);
+    return ITER_OK;
+}
+
+static int meta_update(map_t *map, const void *item, size_t *storageIndex) {
+    struct meta_iter iter;
+    meta_iter_init(&iter, map, item);
+
+    struct meta *m = meta_iter_next(&iter, storageIndex);
+
+    if (!meta_is_used(m))
+        return ITER_ENOENT;
+
+    meta_iter_set(&iter, *storageIndex);
+    return ITER_OK;
+}
+
+static int meta_remove(map_t *map, const void *item, size_t *storageIndex) {
+    struct meta_iter iter;
+    meta_iter_init(&iter, map, item);
+
+    struct meta *m = meta_iter_next(&iter, storageIndex);
+
+    if (!meta_is_used(m))
+        return ITER_ENOENT;
+
+    meta_set_kind(m, META_DEAD);
     return ITER_OK;
 }
 
