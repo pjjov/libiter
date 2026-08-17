@@ -162,6 +162,62 @@ static struct meta *meta_slot(map_t *map, size_t slot) {
     }
 }
 
+static int storage_is_used(struct meta *m) {
+    return (m->kind & STORAGE_MASK) == STORAGE_USED;
+}
+
+static void storage_set_kind(struct meta *m, uint8_t kind) {
+    m->kind = kind | (m->kind & META_MASK);
+}
+
+static size_t storage_reserve(map_t *map) { return map->storageTop; }
+
+static void *storage_get(map_t *map, size_t index) {
+    return PF_OFFSET(map->items, index * map->itemSize);
+}
+
+static void storage_set(map_t *map, const void *item, size_t index) {
+    if (index == map->storageTop) {
+        map->count++;
+        map->storageTop++;
+    }
+
+    struct meta *m = meta_slot(map, index);
+    storage_set_kind(m, STORAGE_USED);
+
+    void *slot = storage_get(map, index);
+    memcpy(slot, item, map->itemSize);
+}
+
+static void storage_remove(map_t *map, size_t index) {
+    struct meta *m = meta_slot(map, index);
+    storage_set_kind(m, STORAGE_EMPTY);
+    map->count--;
+}
+
+static int storage_each(map_t *map, map_each_fn *fn, void *user) {
+    size_t visited = 0;
+
+    for (size_t i = 0; i < map->storageTop; i++) {
+        if (visited >= map->count)
+            break;
+
+        struct meta *m = meta_slot(map, i);
+
+        if (!storage_is_used(m))
+            continue;
+
+        void *slot = storage_get(map, i);
+
+        if (fn(slot, user))
+            return ITER_EINTR;
+
+        visited++;
+    }
+
+    return ITER_OK;
+}
+
 allocator_t *map_allocator(map_t *m) {
     if (!m)
         return NULL;
