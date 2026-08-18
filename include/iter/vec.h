@@ -40,9 +40,14 @@
 /** Checks if given item has the vector's subtype as double pointer. */
 #define vec_checkd(VEC, ITEM) generic_check_item_d(vec_t, VEC, ITEM)
 
+/** Expands into a for loop body with the given variable name. */
+#define VECFORBODY(VEC, VAR)               \
+    vec_type_ptr(VEC) VAR = vecstart(VEC); \
+    VAR < vecend(VEC);                     \
+    VAR++
+
 /** Expands into a for loop with the given variable name. */
-#define VECFOREACH(VEC, VAR)                                              \
-    for (vec_type_ptr(VEC) VAR = vecstart(VEC); VAR < vecend(VEC); VAR++)
+#define VECFOREACH(VEC, VAR) for (VECFORBODY(VEC, VAR))
 
 /** Group: Allocation functions
     Custom-prototype: true
