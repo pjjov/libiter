@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include <allocator.h>
+#include <allocator_flags.h>
 #include <allocator_joined.h>
 #include <pf_macro.h>
 
@@ -24,20 +25,9 @@ PF_IMPL_BITWISE(_size_t, size_t, SIZE_MAX);
 
 #define MAP_GROWTH 2
 #define MAP_DENSITY (3 / 4)
+#define MAP_HEAP_ALLOC 0x1
 
 extern allocator_t *libiter_allocator;
-
-static inline int can_heap_alloc(allocator_t *alloc) {
-    return (((uintptr_t)alloc) & 1) == 0;
-}
-
-static inline int is_heap_alloc(map_t *m) {
-    return (((uintptr_t)m->alloc) & 1) == 1;
-}
-
-static inline void mark_heap_alloc(map_t *out, allocator_t *alloc) {
-    out->alloc = (void *)(((uintptr_t)alloc) | 1);
-}
 
 enum {
     META_EMPTY = 0x00,
@@ -386,13 +376,20 @@ static int meta_remove(map_t *map, const void *item, size_t *storageIndex) {
     return ITER_OK;
 }
 
-allocator_t *map_allocator(map_t *m) {
-    if (!m)
-        return NULL;
+static inline int can_heap_alloc(allocator_t *alloc) {
+    return allocator_flags_get(alloc) == 0;
+}
 
-    uintptr_t mask = ~(uintptr_t)1;
-    uintptr_t masked = ((uintptr_t)m->alloc) & mask;
-    return (allocator_t *)(masked);
+static inline int is_heap_alloc(map_t *m) {
+    return allocator_flags_get(m->alloc) == MAP_HEAP_ALLOC;
+}
+
+static inline void mark_heap_alloc(map_t *out, allocator_t *alloc) {
+    out->alloc = allocator_flags_set(alloc, MAP_HEAP_ALLOC);
+}
+
+allocator_t *map_allocator(map_t *m) {
+    return m ? allocator_flags_mask(m->alloc) : NULL;
 }
 
 map_t *map_new(
@@ -549,7 +546,7 @@ static int resize_empty(map_t *map, size_t capacity) {
 
     size_t metaStride = meta_stride(capacity);
 
-    struct join_alloc blocks[] = {
+    joined_allocation_t blocks[] = {
         {
             .size = capacity * metaStride,
             .align = 0,

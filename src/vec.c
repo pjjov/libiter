@@ -10,34 +10,31 @@
 #include <iter/vec.h>
 
 #include <allocator.h>
+#include <allocator_flags.h>
 #include <pf_macro.h>
 #include <stdint.h>
 #include <string.h>
 
 #define VEC_GROWTH(old, req) ((old + req) * 1.5)
 #define VEC_OFFSET(v, i) PF_OFFSET(v->items, i)
+#define VEC_HEAP_ALLOC 0x1
 
 extern allocator_t *libiter_allocator;
 
 static inline int can_heap_alloc(allocator_t *alloc) {
-    return (((uintptr_t)alloc) & 1) == 0;
+    return allocator_flags_get(alloc) == 0;
 }
 
 static inline int is_heap_alloc(vec_t *v) {
-    return (((uintptr_t)v->alloc) & 1) == 1;
+    return allocator_flags_get(v->alloc) == VEC_HEAP_ALLOC;
 }
 
 static inline void mark_heap_alloc(vec_t *out, allocator_t *alloc) {
-    out->alloc = (void *)(((uintptr_t)alloc) | 1);
+    out->alloc = allocator_flags_set(alloc, VEC_HEAP_ALLOC);
 }
 
 allocator_t *vec_allocator(vec_t *v) {
-    if (!v)
-        return NULL;
-
-    uintptr_t mask = ~(uintptr_t)1;
-    uintptr_t masked = ((uintptr_t)v->alloc) & mask;
-    return (allocator_t *)(masked);
+    return v ? allocator_flags_mask(v->alloc) : NULL;
 }
 
 vec_t *vec_new(allocator_t *alloc) {
