@@ -1,0 +1,8 @@
+[wrap-file]
+directory = cpolyfill-1.3.3
+source_url = https://github.com/pjjov/cpolyfill/archive/refs/tags/v1.3.3.tar.gz
+source_filename = cpolyfill-v1.3.3.tar.gz
+source_hash = f9952b86e23dc7a868729313307a7573106af68fb28e8b6dc736cc0e06c04866
+
+[provide]
+dependency_names = cpolyfill
