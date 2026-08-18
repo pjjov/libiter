@@ -174,6 +174,9 @@
     Custom-prototype: false
 */
 
+/** Default hashing function for byte arrays. */
+ITER_API int maphash(const void *buf, size_t size);
+
 /** Creates a new instance of `map_t`. */
 ITER_API map_t *map_new(
     map_hash_fn *hash, allocator_t *allocator, size_t size, size_t align

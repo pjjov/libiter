@@ -631,3 +631,27 @@ int map_reserve(map_t *map, size_t count) {
 
     return ITER_OK;
 }
+
+#if !defined(HASH_FNV_PRIME) || !defined(HASH_FNV_OFFSET)
+    #if ITER_HASH_BITS == 128
+        #define HASH_FNV_PRIME 0x0000000001000000000000000000013bull
+        #define HASH_FNV_OFFSET 0x6c62272e07bb014262b821756295c58dull
+    #elif ITER_HASH_BITS == 64
+        #define HASH_FNV_PRIME 0x00000100000001b3ull
+        #define HASH_FNV_OFFSET 0xcbf29ce484222325ull
+    #elif ITER_HASH_BITS == 32
+        #define HASH_FNV_PRIME 0x01000193ull
+        #define HASH_FNV_OFFSET 0x811c9dc5ull
+    #endif
+#endif
+
+int maphash(const void *buf, size_t size) {
+    map_hash_t hash = HASH_FNV_OFFSET;
+    const char *bytes = buf;
+
+    while (size--) {
+        hash ^= (map_hash_t)(unsigned char)*bytes++;
+        hash *= HASH_FNV_PRIME;
+    }
+    return hash;
+}

@@ -20,6 +20,14 @@
             #define ITER_HASH_MAX SIZE_MAX
         #endif
 
+        #ifndef ITER_HASH_BITS
+            #if ITER_HASH_MAX == UINT64_MAX
+                #define ITER_HASH_BITS 64
+            #else
+                #define ITER_HASH_BITS 32
+            #endif
+        #endif
+
 enum libiter_bool {
     ITER_TRUE = 1,
     ITER_FALSE = 0,
