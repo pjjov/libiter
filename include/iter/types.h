@@ -138,6 +138,8 @@ typedef struct allocator_t allocator_t;
         #define LIBITER_HAS_VEC
         #define vec(T) generic_container(vec_t, T)
 
+typedef int(vec_each_fn)(void *item, void *user);
+
 typedef struct vec_t {
     void *items;
     size_t len;

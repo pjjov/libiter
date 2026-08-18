@@ -361,3 +361,14 @@ int vec_swap_remove(vec_t *v, void *out, size_t i, size_t count, size_t size) {
     v->len -= len;
     return ITER_OK;
 }
+
+int vec_each(vec_t *v, vec_each_fn *fn, void *user, size_t size) {
+    if (!v || !fn)
+        return ITER_THROW_EINVAL;
+
+    for (size_t i = 0; i < v->len; i += size)
+        if (fn(VEC_OFFSET(v, i), user))
+            return ITER_EINTR;
+
+    return ITER_OK;
+}

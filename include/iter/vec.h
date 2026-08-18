@@ -40,6 +40,10 @@
 /** Checks if given item has the vector's subtype as double pointer. */
 #define vec_checkd(VEC, ITEM) generic_check_item_d(vec_t, VEC, ITEM)
 
+/** Expands into a for loop with the given variable name. */
+#define VECFOREACH(VEC, VAR)                                              \
+    for (vec_type_ptr(VEC) VAR = vecstart(VEC); VAR < vecend(VEC); VAR++)
+
 /** Group: Allocation functions
     Custom-prototype: true
 */
@@ -107,6 +111,21 @@
 */
 #define vecfree(v) vec_free(vec_base(v))
 
+/** int vecresize(vec(T) v, size_t cap);
+
+    Resizes the item buffer to fit 'cap' items.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecresize(v, cap) (vec_resize(vec_base(v), (cap), vec_type_size(v)))
+
+/** int vecreserve(vec(T) v, size_t count);
+
+    Reserves space for at least 'count' items.
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecreserve(v, count)                              \
+    (vec_reserve(vec_base(v), (count), vec_type_size(v)))
+
 /** Group: Properties */
 
 /** size_t veclen(vec(T) v);
@@ -158,6 +177,12 @@
 */
 #define vecitems(v) (vec_items(vec_base(v)))
 
+/** T *vecstart(vec(T) v);
+
+    Returns a pointer to the start of the used part of the item buffer.
+*/
+#define vecstart(v) (vec_start(vec_base(v)))
+
 /** T *vecend(vec(T) v);
 
     Returns a pointer to the end of the used part of the item buffer.
@@ -188,20 +213,7 @@
 */
 #define vecsetcap(v, cap) (vec_setcap(vec_base(v), (cap), vec_type_size(v)))
 
-/** int vecresize(vec(T) v, size_t cap);
-
-    Resizes the item buffer to fit 'cap' items.
-    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
-*/
-#define vecresize(v, cap) (vec_resize(vec_base(v), (cap), vec_type_size(v)))
-
-/** int vecreserve(vec(T) v, size_t count);
-
-    Reserves space for at least 'count' items.
-    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
-*/
-#define vecreserve(v, count)                              \
-    (vec_reserve(vec_base(v), (count), vec_type_size(v)))
+/** Group: Main operations */
 
 /** int vecinsert(vec(T) v, T *items, size_t i, size_t count);
 
@@ -290,6 +302,19 @@
 #define vecswap_remove(v, out, i, count)                                \
     vec_swap_remove(vec_base(v), (out), (i), (count), vec_type_size(v))
 
+/** Group: Iteration functions */
+
+/** int veceach(vec(T) v, vec_each_fn *fn, void *user);
+
+    Calls 'fn' for each item in 'v'. If the callback returns a non-zero value,
+    the iteration is interrupted and the function exits immediately.
+
+    Returns: ITER_EINVAL, ITER_EINTR.
+    Throws: ITER_EINVAL.
+*/
+#define veceach(v, fn, user)                              \
+    vec_each(vec_base(v), (fn), (user), vec_type_size(v))
+
 /** Group: Typeless functions
     Custom-prototype: false
 */
@@ -369,11 +394,17 @@ ITER_API size_t vec_index(vec_t *v, void *item, size_t size);
 /** Returns the item buffer. */
 ITER_INLINE void *vec_items(vec_t *v) { return v ? v->items : NULL; }
 
+/** Returns the pointer past the first item. */
+ITER_INLINE void *vec_start(vec_t *v) {
+    if (!v || v->len == 0)
+        return NULL;
+    return v->items;
+}
+
 /** Returns the pointer past the last item. */
 ITER_INLINE void *vec_end(vec_t *v) {
-    if (!v)
+    if (!v || v->len == 0)
         return NULL;
-
     unsigned char *buf = v->items;
     return &buf[v->len];
 }
@@ -456,5 +487,8 @@ ITER_API int vec_swap(vec_t *v, size_t i, size_t j, size_t count, size_t size);
 ITER_API int vec_swap_remove(
     vec_t *v, void *out, size_t i, size_t count, size_t size
 );
+
+/** Calls 'fn' for each item present in 'v'. */
+ITER_API int vec_each(vec_t *v, vec_each_fn *fn, void *user, size_t size);
 
 #endif
