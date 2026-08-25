@@ -8,10 +8,6 @@
 #ifndef LIBITER_VEC_H
 #define LIBITER_VEC_H
 
-#define LIBITER_NEED_TYPE
-#define LIBITER_NEED_VEC
-#include <iter/types.h>
-
 #ifndef ITER_API
     #define ITER_API
 #endif
@@ -19,6 +15,14 @@
 #ifndef ITER_INLINE
     #define ITER_INLINE static inline
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define LIBITER_NEED_TYPE
+#define LIBITER_NEED_VEC
+#include <iter/types.h>
 
 /** Group: Helper macros */
 
@@ -495,5 +499,9 @@ ITER_API int vec_swap_remove(
 
 /** Calls 'fn' for each item present in 'v'. */
 ITER_API int vec_each(vec_t *v, vec_each_fn *fn, void *user, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

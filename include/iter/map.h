@@ -8,10 +8,6 @@
 #ifndef LIBITER_MAP_H
 #define LIBITER_MAP_H
 
-#define LIBITER_NEED_TYPE
-#define LIBITER_NEED_MAP
-#include <iter/types.h>
-
 #ifndef ITER_API
     #define ITER_API
 #endif
@@ -19,6 +15,14 @@
 #ifndef ITER_INLINE
     #define ITER_INLINE static inline
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define LIBITER_NEED_TYPE
+#define LIBITER_NEED_MAP
+#include <iter/types.h>
 
 /** Group: Helper macros */
 
@@ -229,5 +233,9 @@ ITER_API int map_remove(map_t *m, const void *key, void *out);
 
 /** Calls 'fn' for each item present in 'map'. */
 ITER_API int map_each(map_t *map, map_each_fn *fn, void *user);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

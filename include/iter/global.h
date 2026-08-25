@@ -16,6 +16,10 @@
     #define ITER_INLINE static inline
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef ITER_NO_RETURN
     #define ITER_NO_RETURN
 #endif
@@ -79,5 +83,9 @@ ITER_NO_RETURN ITER_API int libiter_vthrowf(
 
 /** Emits the exception `e` for the next catcher. */
 ITER_NO_RETURN ITER_API int libiter_rethrow(pf_exception_t *e);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

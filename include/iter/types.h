@@ -7,6 +7,10 @@
 
 #ifndef LIBITER_TYPES_H
 
+    #ifdef __cplusplus
+extern "C" {
+    #endif
+
     #ifndef LIBITER_TYPES_ONCE
         #define LIBITER_TYPES_ONCE
         #include <iter/pf_types.h>
@@ -187,6 +191,10 @@ typedef struct map_t {
 
     #if defined(LIBITER_HAS_VEC) && defined(LIBITER_HAS_MAP)
         #define LIBITER_TYPES_H
+    #endif
+
+    #ifdef __cplusplus
+}
     #endif
 
 #endif
