@@ -61,6 +61,7 @@ vec_t *vec_init(vec_t *out, allocator_t *alloc) {
     out->alloc = alloc;
     out->len = 0;
     out->cap = 0;
+    out->items = NULL;
     return out;
 }
 

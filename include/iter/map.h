@@ -114,8 +114,8 @@ extern "C" {
     Returns: ITER_EINVAL, ITER_ENOENT.
     Throws: ITER_EINVAL.
 */
-#define mapget(map, item, out)                                \
-    (map_get(map_base(map), map_check(item), map_check(out)))
+#define mapget(map, item, out)                                          \
+    (map_get(map_base(map), map_check(map, item), map_check(map, out)))
 
 /** T *mapptr(map(T) map, const T *key);
 
@@ -125,7 +125,7 @@ extern "C" {
     Returns: `NULL` if not found.
     Throws: ITER_EINVAL.
 */
-#define mapptr(map, item) (map_ptr(map_base(map), map_check(item)))
+#define mapptr(map, item) (map_ptr(map_base(map), map_check(map, item)))
 
 /** int mapset(map(T) map, const T *item);
 
@@ -133,7 +133,7 @@ extern "C" {
 
     Returns/Throws: ITER_EINVAL.
 */
-#define mapset(map, item) map_set(map_base(map), map_check(item))
+#define mapset(map, item) map_set(map_base(map), map_check(map, item))
 
 /** int mapinsert(map(T) map, const T *item);
 
@@ -142,7 +142,7 @@ extern "C" {
     Returns: ITER_EINVAL, ITER_EEXIST.
     Throws: ITER_EINVAL.
 */
-#define mapinsert(map, item) map_insert(map_base(map), map_check(item))
+#define mapinsert(map, item) map_insert(map_base(map), map_check(map, item))
 
 /** int mapupdate(map(T) map, const T *item);
 
@@ -151,7 +151,7 @@ extern "C" {
     Returns: ITER_EINVAL, ITER_ENOENT.
     Throws: ITER_EINVAL.
 */
-#define mapupdate(map, item) map_update(map_base(map), map_check(item))
+#define mapupdate(map, item) map_update(map_base(map), map_check(map, item))
 
 /** int mapremove(map(T) map, const T *key, T *out);
 
@@ -161,8 +161,8 @@ extern "C" {
     Returns: ITER_EINVAL, ITER_ENOENT.
     Throws: ITER_EINVAL.
 */
-#define mapremove(map, item, out)                     \
-    map_remove(map_base(map), map_check(item), (out))
+#define mapremove(map, item, out)                          \
+    map_remove(map_base(map), map_check(map, item), (out))
 
 /** int mapeach(map(T) map, map_each_fn *fn, void *user);
 
