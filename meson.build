@@ -12,10 +12,10 @@ src = [
 
 inc = include_directories('include')
 
-deps = [
-    dependency('allocator_t', required: true),
-    dependency('cpolyfill', required: true),
-]
+allocator_t_dep = dependency('allocator_t', required: true)
+cpolyfill_dep = dependency('cpolyfill', required: true)
+
+deps = [allocator_t_dep, cpolyfill_dep]
 
 lib = library(
     'iter',
@@ -57,3 +57,18 @@ pkg.generate(
     ],
     extra_cflags: '-I${includedir}',
 )
+
+if not meson.is_subproject()
+    test_exe = executable(
+        'libiter-test',
+        sources: [
+            'test/main.c',
+            'test/vec.c',
+            'test/map.c',
+        ],
+        dependencies: [cpolyfill_dep, iter_dep],
+    )
+
+    test('libiter/vec', test_exe, args: ['vec'])
+    test('libiter/map', test_exe, args: ['map'])
+endif

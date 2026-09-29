@@ -24,7 +24,8 @@
 PF_IMPL_BITWISE(_size_t, size_t, SIZE_MAX);
 
 #define MAP_GROWTH 2
-#define MAP_DENSITY (3 / 4)
+#define MAP_DENSITY_NUM 3
+#define MAP_DENSITY_DEN 4
 #define MAP_HEAP_ALLOC 0x1
 
 extern allocator_t *libiter_allocator;
@@ -314,11 +315,14 @@ static struct meta *meta_iter_next(
 }
 
 static int meta_get(map_t *map, const void *item, size_t *storageIndex) {
+    if (map->cap == 0)
+        return ITER_ENOENT;
+
     struct meta_iter iter;
     meta_iter_init(&iter, map, item);
 
     struct meta *m = meta_iter_next(&iter, storageIndex);
-    return meta_is_empty(m) ? ITER_OK : ITER_ENOENT;
+    return meta_is_empty(m) ? ITER_ENOENT : ITER_OK;
 }
 
 static int meta_set(
@@ -351,6 +355,9 @@ static int meta_insert(map_t *map, const void *item, size_t newStorageIndex) {
 }
 
 static int meta_update(map_t *map, const void *item, size_t *storageIndex) {
+    if (map->cap == 0)
+        return ITER_ENOENT;
+
     struct meta_iter iter;
     meta_iter_init(&iter, map, item);
 
@@ -364,6 +371,9 @@ static int meta_update(map_t *map, const void *item, size_t *storageIndex) {
 }
 
 static int meta_remove(map_t *map, const void *item, size_t *storageIndex) {
+    if (map->cap == 0)
+        return ITER_ENOENT;
+
     struct meta_iter iter;
     meta_iter_init(&iter, map, item);
 
@@ -403,7 +413,7 @@ map_t *map_new(
 
     map_t *out;
 
-    if ((out = allocate(alloc, sizeof(*out))))
+    if (!(out = allocate(alloc, sizeof(*out))))
         return ITER_THROW_NULL(ITER_ENOMEM);
 
     map_init(out, hash, alloc, size, align);
@@ -423,6 +433,8 @@ map_t *map_init(
     memset(out, 0, sizeof(*out));
     out->hash = hash;
     out->alloc = alloc;
+    out->itemSize = size;
+    out->itemAlign = align;
     return out;
 }
 
@@ -439,6 +451,9 @@ void map_free(map_t *m) {
 }
 
 int map_get(map_t *map, const void *item, void *out) {
+    if (!map || !item)
+        return ITER_THROW_EINVAL;
+
     void *slot;
 
     if (!(slot = map_ptr(map, item)))
@@ -542,14 +557,14 @@ int map_each(map_t *map, map_each_fn *fn, void *user) {
 
 static int resize_empty(map_t *map, size_t capacity) {
     if (map->buffer)
-        deallocate(map->alloc, map->buffer, map->bufferSize);
+        deallocate(map_allocator(map), map->buffer, map->bufferSize);
 
     size_t metaStride = meta_stride(capacity);
 
     joined_allocation_t blocks[] = {
         {
             .size = capacity * metaStride,
-            .align = 0,
+            .align = meta_size(capacity),
         },
         {
             .size = capacity * map->itemSize,
@@ -558,7 +573,7 @@ static int resize_empty(map_t *map, size_t capacity) {
     };
 
     size_t bufferSize;
-    void *buffer = allocate_joined(map->alloc, blocks, 2, &bufferSize);
+    void *buffer = allocate_joined(map_allocator(map), blocks, 2, &bufferSize);
 
     if (!buffer)
         return ITER_ENOMEM;
@@ -590,11 +605,11 @@ static int resize_non_empty(map_t *map, size_t capacity) {
         return ITER_ENOMEM;
 
     if (map_each(map, resize_non_empty_each_fn, &tmp)) {
-        deallocate(map->alloc, tmp.buffer, tmp.bufferSize);
+        deallocate(map_allocator(map), tmp.buffer, tmp.bufferSize);
         return ITER_ENOMEM;
     }
 
-    deallocate(map->alloc, map->buffer, map->bufferSize);
+    deallocate(map_allocator(map), map->buffer, map->bufferSize);
     *map = tmp;
     return ITER_OK;
 }
@@ -614,11 +629,11 @@ static int map_resize(map_t *map, size_t capacity) {
 static size_t map_threshold(map_t *map, size_t req) {
     if (map->storageTop + req >= map->cap) /* tombstone check */
         return ITER_TRUE;
-    return map->count + req >= map->cap * MAP_DENSITY;
+    return map->count + req >= map->cap * MAP_DENSITY_NUM / MAP_DENSITY_DEN;
 }
 
 static size_t map_growth(map_t *map, size_t req) {
-    size_t cap = (map->cap + req) * MAP_GROWTH;
+    size_t cap = (map->count + req) * MAP_GROWTH;
     return pf_pow2ceil_size_t(cap);
 }
 
