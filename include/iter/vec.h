@@ -112,7 +112,7 @@ extern "C" {
 
     Returns the item buffer of 'v' and frees 'v' if `vecinit` was not used.
 */
-#define vecunwrap(v) vec_unwrap(vec_base(v))
+#define vecunwrap(v) ((vec_type_ptr(v))vec_unwrap(vec_base(v)))
 
 /** void vecfree(vec(T) v);
 
@@ -159,19 +159,22 @@ extern "C" {
 
     Returns a pointer to the item slot at index i.
 */
-#define vecslot(v, i) (vec_slot(vec_base(v), (i), vec_type_size(v)))
+#define vecslot(v, i)                                               \
+    ((vec_type_ptr(v))vec_slot(vec_base(v), (i), vec_type_size(v)))
 
 /** T *vecptr(vec(T) v, size_t i);
 
     Returns a pointer to the item at index i.
 */
-#define vecptr(v, i) (vec_ptr(vec_base(v), (i), vec_type_size(v)))
+#define vecptr(v, i)                                               \
+    ((vec_type_ptr(v))vec_ptr(vec_base(v), (i), vec_type_size(v)))
 
 /** T vecget(vec(T) v, size_t i);
 
     Returns the item at index i.
 */
-#define vecget(v, i) (*vec_ptr(vec_base(v), (i), vec_type_size(v)))
+#define vecget(v, i)                                                \
+    (*(vec_type_ptr(v))vec_ptr(vec_base(v), (i), vec_type_size(v)))
 
 /** size_t vecindex(vec(T) v, T *item);
 
@@ -184,19 +187,19 @@ extern "C" {
 
     Returns the pointer of the allocated item buffer.
 */
-#define vecitems(v) (vec_items(vec_base(v)))
+#define vecitems(v) ((vec_type_ptr(v))vec_items(vec_base(v)))
 
 /** T *vecstart(vec(T) v);
 
     Returns a pointer to the start of the used part of the item buffer.
 */
-#define vecstart(v) (vec_start(vec_base(v)))
+#define vecstart(v) ((vec_type_ptr(v))vec_start(vec_base(v)))
 
 /** T *vecend(vec(T) v);
 
     Returns a pointer to the end of the used part of the item buffer.
 */
-#define vecend(v) (vec_end(vec_base(v)))
+#define vecend(v) ((vec_type_ptr(v))vec_end(vec_base(v)))
 
 /** int vecisempty(vec(T) v);
 

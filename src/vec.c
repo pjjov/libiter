@@ -155,10 +155,9 @@ size_t vec_index(vec_t *v, void *item, size_t size) {
         return 0;
     }
 
-    size_t last = v->len / size;
     size_t diff = (uint8_t *)item - (uint8_t *)v->items;
 
-    if (item < v->items || item > vec_slot(v, last, size)) {
+    if (item < v->items || diff > v->len) {
         ITER_THROW_EINVAL;
         return 0;
     }
@@ -223,7 +222,7 @@ static int reserve_region(vec_t *v, size_t i, size_t count, size_t size) {
         return ITER_ENOMEM;
 
     if (off < v->len) {
-        void *dst = VEC_OFFSET(v, off + size);
+        void *dst = VEC_OFFSET(v, off + count * size);
         void *src = VEC_OFFSET(v, off);
         memmove(dst, src, v->len - off);
     }
@@ -241,7 +240,8 @@ int vec_insert(vec_t *v, void *items, size_t i, size_t count, size_t size) {
         return rc;
 
     v->len += count * size;
-    memcpy(VEC_OFFSET(v, i * size), items, count * size);
+    if (count)
+        memcpy(VEC_OFFSET(v, i * size), items, count * size);
     return ITER_OK;
 }
 
@@ -293,7 +293,7 @@ int vec_remove(vec_t *v, void *out, size_t i, size_t count, size_t size) {
     if (off + len > v->len)
         return ITER_THROW_EINVAL;
 
-    if (out)
+    if (out && len)
         memcpy(out, VEC_OFFSET(v, off), len);
 
     if (off + len < v->len) {
@@ -309,7 +309,11 @@ int vec_remove(vec_t *v, void *out, size_t i, size_t count, size_t size) {
 int vec_pop(vec_t *v, void *out, size_t count, size_t size) {
     if (!v || size == 0)
         return ITER_THROW_EINVAL;
-    return vec_remove(v, out, v->len / size, count, size);
+
+    if (count > v->len / size)
+        return ITER_THROW_EINVAL;
+
+    return vec_remove(v, out, v->len / size - count, count, size);
 }
 
 static int region_overlap(size_t i, size_t j, size_t ilen, size_t jlen) {
@@ -336,9 +340,11 @@ int vec_swap(vec_t *v, size_t i, size_t j, size_t count, size_t size) {
     if (vec_reserve(v, count, size))
         return ITER_THROW_ENOMEM;
 
-    memcpy(VEC_OFFSET(v, v->len), VEC_OFFSET(v, ioff), len);
-    memcpy(VEC_OFFSET(v, ioff), VEC_OFFSET(v, joff), len);
-    memcpy(VEC_OFFSET(v, joff), VEC_OFFSET(v, v->len), len);
+    if (len) {
+        memcpy(VEC_OFFSET(v, v->len), VEC_OFFSET(v, ioff), len);
+        memcpy(VEC_OFFSET(v, ioff), VEC_OFFSET(v, joff), len);
+        memcpy(VEC_OFFSET(v, joff), VEC_OFFSET(v, v->len), len);
+    }
     return ITER_OK;
 }
 
@@ -355,9 +361,14 @@ int vec_swap_remove(vec_t *v, void *out, size_t i, size_t count, size_t size) {
     if (off + len > v->len)
         return ITER_THROW_EINVAL;
 
-    if (off + len < v->len) {
-        memmove(VEC_OFFSET(v, off), VEC_OFFSET(v, v->len - len), len);
-    }
+    if (out && len)
+        memcpy(out, VEC_OFFSET(v, off), len);
+
+    size_t tail = v->len - off - len;
+    size_t moved = tail < len ? tail : len;
+
+    if (moved)
+        memmove(VEC_OFFSET(v, off), VEC_OFFSET(v, v->len - moved), moved);
 
     v->len -= len;
     return ITER_OK;
