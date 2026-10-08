@@ -227,6 +227,28 @@ extern "C" {
 
 /** Group: Main operations */
 
+/** T *vecincr(vec(T) v, size_t count);
+
+    Increases the vector's length by count and returns the first added slot.
+    This function is an inverted variant of 'push', allowing the user to
+    initialize an object instead of copying it.
+
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecincr(v, count)                                               \
+    ((vec_type_ptr(v))vec_incr(vec_base(v), (count), vec_type_size(v)))
+
+/** T *vecincr(vec(T) v, size_t count);
+
+    Decreases the vector's length by count and returns the slot at the end of
+    the buffer. This function is an inverted variant of 'pop', allowing the
+    user to free an object after removing it.
+
+    Throws: ITER_EINVAL, ITER_ENOMEM, ITER_EOVERFLOW.
+*/
+#define vecdecr(v, count)                                               \
+    ((vec_type_ptr(v))vec_decr(vec_base(v), (count), vec_type_size(v)))
+
 /** int vecinsert(vec(T) v, T *items, size_t i, size_t count);
 
     Inserts 'count' items at index 'i'.
@@ -455,6 +477,12 @@ ITER_API int vec_resize(vec_t *v, size_t cap, size_t size);
 
 /** Reserves space for at least 'count' items. */
 ITER_API int vec_reserve(vec_t *v, size_t count, size_t size);
+
+/** Increases length by 'count' and returns the first added slot. */
+ITER_API void *vec_incr(vec_t *v, size_t count, size_t size);
+
+/** Decreases length by 'count' and returns the first removed slot. */
+ITER_API void *vec_decr(vec_t *v, size_t count, size_t size);
 
 /** Inserts 'count' items start at index 'i'. */
 ITER_API int vec_insert(

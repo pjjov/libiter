@@ -230,6 +230,29 @@ static int reserve_region(vec_t *v, size_t i, size_t count, size_t size) {
     return ITER_OK;
 }
 
+void *vec_incr(vec_t *v, size_t count, size_t size) {
+    if (!v || size == 0)
+        return ITER_THROW_NULL(ITER_EINVAL);
+
+    if (vec__mul(count, size))
+        return ITER_THROW_NULL(ITER_EOVERFLOW);
+
+    void *slot = VEC_OFFSET(v, v->len);
+    v->len += count * size;
+    return slot;
+}
+
+void *vec_decr(vec_t *v, size_t count, size_t size) {
+    if (!v || size == 0)
+        return ITER_THROW_NULL(ITER_EINVAL);
+
+    if (vec__mul(count, size))
+        return ITER_THROW_NULL(ITER_EOVERFLOW);
+
+    v->len -= count * size;
+    return VEC_OFFSET(v, v->len);
+}
+
 int vec_insert(vec_t *v, void *items, size_t i, size_t count, size_t size) {
     if (!v || !items || size == 0)
         return ITER_THROW_EINVAL;
