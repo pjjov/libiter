@@ -19,6 +19,7 @@
 #include <allocator.h>
 #include <allocator_flags.h>
 #include <allocator_std.h>
+#include <allocator_tracker.h>
 
 #include <limits.h>
 #include <stdint.h>
@@ -69,80 +70,13 @@ typedef map(struct named) nmap;
 typedef map(struct wide) wmap;
 typedef map(struct big) bmap;
 
-/* Allocator that tracks every block, can be told to start failing, and
-   verifies the `old` size that the library reports on free/realloc. */
-typedef struct tracker_t {
-    allocator_t base;
-    long budget; /* allocations that may still succeed, < 0 = unlimited */
-    size_t allocs;
-    size_t reallocs;
-    size_t frees;
-    size_t blocks;  /* live blocks */
-    size_t bytes;   /* live bytes */
-    size_t badsize; /* frees/reallocs called with a wrong `old` size */
-} tracker_t;
-
-#define TRACKER_HDR 16
-
-static void *tracker_fn(
-    allocator_t *self, void *ptr, size_t old, size_t size, size_t zalign
-) {
-    tracker_t *t = (tracker_t *)self;
-    unsigned char *raw = NULL;
-    size_t stored = 0;
-
-    if (self == ptr)
-        return NULL;
-
-    if (ptr) {
-        raw = (unsigned char *)ptr - TRACKER_HDR;
-        memcpy(&stored, raw, sizeof stored);
-        if (stored != old)
-            t->badsize++;
-    }
-
-    if (size == 0) {
-        if (ptr) {
-            t->frees++;
-            t->blocks--;
-            t->bytes -= stored;
-            free(raw);
-        }
-        return NULL;
-    }
-
-    if (t->budget == 0)
-        return NULL;
-
-    if (ptr) {
-        unsigned char *grown = realloc(raw, size + TRACKER_HDR);
-        if (!grown)
-            return NULL;
-        if (t->budget > 0)
-            t->budget--;
-        if ((zalign & 1) && size > stored)
-            memset(grown + TRACKER_HDR + stored, 0, size - stored);
-        memcpy(grown, &size, sizeof size);
-        t->reallocs++;
-        t->bytes = t->bytes - stored + size;
-        return grown + TRACKER_HDR;
-    }
-
-    raw = (zalign & 1) ? calloc(1, size + TRACKER_HDR)
-                       : malloc(size + TRACKER_HDR);
-    if (!raw)
-        return NULL;
-    if (t->budget > 0)
-        t->budget--;
-    memcpy(raw, &size, sizeof size);
-    t->allocs++;
-    t->blocks++;
-    t->bytes += size;
-    return raw + TRACKER_HDR;
-}
-
-#define TRACKER(name, budget_)                                       \
-    tracker_t name = { { tracker_fn }, (budget_), 0, 0, 0, 0, 0, 0 }
+/* tracker_allocator_t (from allocator_t's allocator_tracker.h) tracks
+   every block, can be told to start failing via `budget`, and verifies
+   the `old` size the library reports on free/realloc. */
+#define TRACKER(name, budget_)                            \
+    tracker_allocator_t name;                              \
+    tracker_allocator_init(&name, &standard_allocator);    \
+    name.budget = (budget_)
 
 /* xorshift32, good enough for shuffling test inputs. */
 static uint32_t rng_next(uint32_t *s) {
@@ -266,27 +200,27 @@ TEST(new_uses_global_allocator) {
     BEGIN;
     TRACKER(t, -1);
 
-    libiter_use_allocator(&t.base);
+    libiter_use_allocator(&t.alloc);
     imap m = mapnew(int, hash_int, NULL);
     libiter_use_allocator(&standard_allocator);
 
     pf_assert_not_null(m);
-    pf_assert(mapallocator(m) == &t.base);
+    pf_assert(mapallocator(m) == &t.alloc);
     pf_assert(t.blocks == 1);
     pf_assert_ok(setk(m, 1));
     pf_assert(t.blocks >= 2);
     mapfree(m);
     pf_assert(t.blocks == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
 TEST(new_uses_given_allocator) {
     BEGIN;
     TRACKER(t, -1);
-    imap m = mapnew(int, hash_int, &t.base);
+    imap m = mapnew(int, hash_int, &t.alloc);
     pf_assert_not_null(m);
-    pf_assert(mapallocator(m) == &t.base);
+    pf_assert(mapallocator(m) == &t.alloc);
     pf_assert(t.blocks == 1);
     mapfree(m);
     pf_assert(t.blocks == 0);
@@ -296,7 +230,7 @@ TEST(new_uses_given_allocator) {
 TEST(new_allocation_failure) {
     BEGIN;
     TRACKER(t, 0);
-    imap m = mapnew(int, hash_int, &t.base);
+    imap m = mapnew(int, hash_int, &t.alloc);
     pf_assert_null(m);
     pf_assert(t.blocks == 0);
     return 0;
@@ -306,9 +240,9 @@ TEST(new_invalid_arguments) {
     BEGIN;
     TRACKER(t, -1);
     pf_assert_null(mapnew(int, NULL, NULL));
-    pf_assert_null(mapnew(int, NULL, &t.base));
+    pf_assert_null(mapnew(int, NULL, &t.alloc));
 
-    allocator_t *tagged = allocator_flags_set(&t.base, 1);
+    allocator_t *tagged = allocator_flags_set(&t.alloc, 1);
     pf_assert_null(mapnew(int, hash_int, tagged));
     pf_assert(t.blocks == 0);
     return 0;
@@ -320,11 +254,11 @@ TEST(init_uses_caller_storage) {
     map_t raw;
     memset(&raw, 0xAB, sizeof raw);
 
-    imap m = mapinit(int, &raw, hash_int, &t.base);
+    imap m = mapinit(int, &raw, hash_int, &t.alloc);
     pf_assert(map_base(m) == &raw);
     pf_assert(t.blocks == 0);
     pf_assert(mapcount(m) == 0);
-    pf_assert(mapallocator(m) == &t.base);
+    pf_assert(mapallocator(m) == &t.alloc);
 
     for (int i = 0; i < 20; i++)
         pf_assert_ok(setk(m, i));
@@ -334,7 +268,7 @@ TEST(init_uses_caller_storage) {
     /* only what the map allocated may be released, `raw` is on the stack */
     mapfree(m);
     pf_assert(t.blocks == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
@@ -345,7 +279,7 @@ TEST(init_invalid_arguments) {
     pf_assert_null(mapinit(int, NULL, hash_int, NULL));
     pf_assert_null(mapinit(int, &raw, NULL, NULL));
 
-    allocator_t *tagged = allocator_flags_set(&t.base, 1);
+    allocator_t *tagged = allocator_flags_set(&t.alloc, 1);
     pf_assert_null(mapinit(int, &raw, hash_int, tagged));
     return 0;
 }
@@ -360,13 +294,13 @@ TEST(free_null_is_noop) {
 TEST(free_releases_everything) {
     BEGIN;
     TRACKER(t, -1);
-    imap m = mapnew(int, hash_int, &t.base);
+    imap m = mapnew(int, hash_int, &t.alloc);
     for (int i = 0; i < 300; i++)
         pf_assert_ok(setk(m, i));
     mapfree(m);
     pf_assert(t.blocks == 0);
     pf_assert(t.bytes == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
@@ -445,7 +379,7 @@ TEST(reserve_zero_is_invalid) {
 TEST(reserve_avoids_later_reallocation) {
     BEGIN;
     TRACKER(t, -1);
-    imap m = mapnew(int, hash_int, &t.base);
+    imap m = mapnew(int, hash_int, &t.alloc);
     pf_assert_ok(mapreserve(m, 200));
     size_t before = t.allocs + t.reallocs;
 
@@ -489,7 +423,7 @@ TEST(reserve_never_shrinks) {
 TEST(reserve_out_of_memory_changes_nothing) {
     BEGIN;
     TRACKER(t, -1);
-    imap m = mapnew(int, hash_int, &t.base);
+    imap m = mapnew(int, hash_int, &t.alloc);
     for (int i = 0; i < 10; i++)
         pf_assert_ok(setk(m, i));
     size_t cap = mapcap(m);
@@ -593,7 +527,7 @@ TEST(set_copies_the_item) {
 TEST(set_out_of_memory_changes_nothing) {
     BEGIN;
     TRACKER(t, -1);
-    pmap m = mapnew(struct pr, hash_pair, &t.base);
+    pmap m = mapnew(struct pr, hash_pair, &t.alloc);
     t.budget = 0;
 
     pf_assert(setp(m, 1, 10) == ITER_ENOMEM);
@@ -634,7 +568,7 @@ TEST(insert_refuses_duplicates) {
 TEST(insert_out_of_memory_changes_nothing) {
     BEGIN;
     TRACKER(t, -1);
-    pmap m = mapnew(struct pr, hash_pair, &t.base);
+    pmap m = mapnew(struct pr, hash_pair, &t.alloc);
     t.budget = 0;
     pf_assert(insp(m, 1, 10) == ITER_ENOMEM);
     pf_assert(mapcount(m) == 0);
@@ -1086,7 +1020,7 @@ TEST(growth_is_proportional_to_the_item_count) {
 TEST(growth_is_amortized) {
     BEGIN;
     TRACKER(t, -1);
-    imap m = mapnew(int, hash_int, &t.base);
+    imap m = mapnew(int, hash_int, &t.alloc);
     for (int i = 0; i < 2000; i++)
         pf_assert_ok(setk(m, i));
     pf_assert(t.allocs + t.reallocs < 64);
@@ -1136,7 +1070,7 @@ TEST(insert_and_remove_churn) {
 TEST(churn_does_not_grow_memory_without_bound) {
     BEGIN;
     TRACKER(t, -1);
-    imap m = mapnew(int, hash_int, &t.base);
+    imap m = mapnew(int, hash_int, &t.alloc);
     enum { LIVE = 8, ROUNDS = 20000 };
 
     for (int i = 0; i < ROUNDS; i++) {
@@ -1374,7 +1308,7 @@ TEST(large_items) {
 TEST(everything_is_released_after_heavy_use) {
     BEGIN;
     TRACKER(t, -1);
-    imap m = mapnew(int, hash_int, &t.base);
+    imap m = mapnew(int, hash_int, &t.alloc);
     for (int i = 0; i < 1000; i++)
         pf_assert_ok(setk(m, i));
     for (int i = 0; i < 1000; i += 2) {
@@ -1388,7 +1322,7 @@ TEST(everything_is_released_after_heavy_use) {
     mapfree(m);
     pf_assert(t.blocks == 0);
     pf_assert(t.bytes == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
@@ -1396,20 +1330,20 @@ TEST(initialized_map_releases_everything) {
     BEGIN;
     TRACKER(t, -1);
     map_t raw;
-    imap m = mapinit(int, &raw, hash_int, &t.base);
+    imap m = mapinit(int, &raw, hash_int, &t.alloc);
     for (int i = 0; i < 500; i++)
         pf_assert_ok(setk(m, i));
     mapfree(m);
     pf_assert(t.blocks == 0);
     pf_assert(t.bytes == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
 TEST(out_of_memory_during_growth_keeps_the_map_intact) {
     BEGIN;
     TRACKER(t, -1);
-    pmap m = mapnew(struct pr, hash_pair, &t.base);
+    pmap m = mapnew(struct pr, hash_pair, &t.alloc);
     for (int i = 0; i < 10; i++)
         pf_assert_ok(setp(m, i, i * 5));
 
@@ -1436,7 +1370,7 @@ TEST(out_of_memory_during_growth_keeps_the_map_intact) {
 
     mapfree(m);
     pf_assert(t.blocks == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
@@ -1444,7 +1378,7 @@ TEST(everything_is_released_after_failures) {
     BEGIN;
     for (long budget = 0; budget < 6; budget++) {
         TRACKER(t, budget);
-        imap m = mapnew(int, hash_int, &t.base);
+        imap m = mapnew(int, hash_int, &t.alloc);
         if (m) {
             for (int i = 0; i < 200; i++) {
                 if (setk(m, i))
@@ -1480,7 +1414,7 @@ TEST(random_operations_match_a_reference) {
     for (int round = 0; round < 6; round++) {
         uint32_t rs = rng_seed(seed, rep, round);
         TRACKER(t, -1);
-        pmap m = mapnew(struct pr, hash_pair, &t.base);
+        pmap m = mapnew(struct pr, hash_pair, &t.alloc);
         struct model ref;
         memset(&ref, 0, sizeof ref);
 
@@ -1572,7 +1506,7 @@ TEST(random_operations_match_a_reference) {
 
         mapfree(m);
         pf_assert(t.blocks == 0);
-        pf_assert(t.badsize == 0);
+        pf_assert(t.badSizes == 0);
     }
     return 0;
 }

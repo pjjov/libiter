@@ -19,6 +19,7 @@
 #include <allocator.h>
 #include <allocator_flags.h>
 #include <allocator_std.h>
+#include <allocator_tracker.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -47,80 +48,14 @@ struct blob {
 };
 typedef vec(struct blob) bvec;
 
-/* Allocator that tracks every block, can be told to start failing, and
-   verifies the `old` size that the library reports on free/realloc. */
-typedef struct tracker_t {
-    allocator_t base;
-    long budget; /* allocations that may still succeed, < 0 = unlimited */
-    size_t allocs;
-    size_t reallocs;
-    size_t frees;
-    size_t blocks;  /* live blocks */
-    size_t bytes;   /* live bytes */
-    size_t badsize; /* frees/reallocs called with a wrong `old` size */
-} tracker_t;
 
-#define TRACKER_HDR 16
-
-static void *tracker_fn(
-    allocator_t *self, void *ptr, size_t old, size_t size, size_t zalign
-) {
-    tracker_t *t = (tracker_t *)self;
-    unsigned char *raw = NULL;
-    size_t stored = 0;
-
-    if (self == ptr)
-        return NULL;
-
-    if (ptr) {
-        raw = (unsigned char *)ptr - TRACKER_HDR;
-        memcpy(&stored, raw, sizeof stored);
-        if (stored != old)
-            t->badsize++;
-    }
-
-    if (size == 0) {
-        if (ptr) {
-            t->frees++;
-            t->blocks--;
-            t->bytes -= stored;
-            free(raw);
-        }
-        return NULL;
-    }
-
-    if (t->budget == 0)
-        return NULL;
-
-    if (ptr) {
-        unsigned char *grown = realloc(raw, size + TRACKER_HDR);
-        if (!grown)
-            return NULL;
-        if (t->budget > 0)
-            t->budget--;
-        if ((zalign & 1) && size > stored)
-            memset(grown + TRACKER_HDR + stored, 0, size - stored);
-        memcpy(grown, &size, sizeof size);
-        t->reallocs++;
-        t->bytes = t->bytes - stored + size;
-        return grown + TRACKER_HDR;
-    }
-
-    raw = (zalign & 1) ? calloc(1, size + TRACKER_HDR)
-                       : malloc(size + TRACKER_HDR);
-    if (!raw)
-        return NULL;
-    if (t->budget > 0)
-        t->budget--;
-    memcpy(raw, &size, sizeof size);
-    t->allocs++;
-    t->blocks++;
-    t->bytes += size;
-    return raw + TRACKER_HDR;
-}
-
-#define TRACKER(name, budget_)                                       \
-    tracker_t name = { { tracker_fn }, (budget_), 0, 0, 0, 0, 0, 0 }
+/* tracker_allocator_t (from allocator_t's allocator_tracker.h) tracks
+   every block, can be told to start failing via `budget`, and verifies
+   the `old` size the library reports on free/realloc. */
+#define TRACKER(name, budget_)                            \
+    tracker_allocator_t name;                              \
+    tracker_allocator_init(&name, &standard_allocator);    \
+    name.budget = (budget_)
 
 /* xorshift32, good enough for shuffling test inputs. */
 static uint32_t rng_next(uint32_t *s) {
@@ -248,27 +183,27 @@ TEST(new_uses_global_allocator) {
     TRACKER(t, -1);
     int x = 7;
 
-    libiter_use_allocator(&t.base);
+    libiter_use_allocator(&t.alloc);
     ivec v = vecnew(int, NULL);
     libiter_use_allocator(&standard_allocator);
 
     pf_assert_not_null(v);
-    pf_assert(vecallocator(v) == &t.base);
+    pf_assert(vecallocator(v) == &t.alloc);
     pf_assert(t.blocks == 1);
     pf_assert_ok(vecpush(v, &x, 1));
     pf_assert(t.blocks == 2);
     vecfree(v);
     pf_assert(t.blocks == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
 TEST(new_uses_given_allocator) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     pf_assert_not_null(v);
-    pf_assert(vecallocator(v) == &t.base);
+    pf_assert(vecallocator(v) == &t.alloc);
     pf_assert(t.blocks == 1);
     vecfree(v);
     pf_assert(t.blocks == 0);
@@ -279,7 +214,7 @@ TEST(new_uses_given_allocator) {
 TEST(new_allocation_failure) {
     UNUSED;
     TRACKER(t, 0);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     pf_assert_null(v);
     pf_assert(t.blocks == 0);
     return 0;
@@ -291,13 +226,13 @@ TEST(init_uses_caller_storage) {
     vec_t raw;
     memset(&raw, 0xAB, sizeof raw);
 
-    ivec v = vecinit(int, &raw, &t.base);
+    ivec v = vecinit(int, &raw, &t.alloc);
     pf_assert(vec_base(v) == &raw);
     pf_assert(t.blocks == 0);
     pf_assert(veclen(v) == 0);
     pf_assert(veccap(v) == 0);
     pf_assert_null(vecitems(v));
-    pf_assert(vecallocator(v) == &t.base);
+    pf_assert(vecallocator(v) == &t.alloc);
 
     fill_seq(v, 10);
     pf_assert(t.blocks == 1);
@@ -305,7 +240,7 @@ TEST(init_uses_caller_storage) {
     /* Only the item buffer may be released, `raw` lives on the stack. */
     vecfree(v);
     pf_assert(t.blocks == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
@@ -314,10 +249,10 @@ TEST(init_invalid_arguments) {
     TRACKER(t, -1);
     vec_t raw;
     pf_assert_null(vecinit(int, NULL, NULL));
-    pf_assert_null(vecinit(int, NULL, &t.base));
+    pf_assert_null(vecinit(int, NULL, &t.alloc));
 
     /* Allocators carrying flag bits cannot be used to allocate. */
-    allocator_t *tagged = allocator_flags_set(&t.base, 1);
+    allocator_t *tagged = allocator_flags_set(&t.alloc, 1);
     pf_assert_null(vecinit(int, &raw, tagged));
     return 0;
 }
@@ -350,7 +285,7 @@ TEST(new_array_null_source) {
     UNUSED;
     TRACKER(t, -1);
     int *none = NULL;
-    ivec v = vecnew_array(none, 3, &t.base);
+    ivec v = vecnew_array(none, 3, &t.alloc);
     pf_assert_null(v);
     pf_assert(t.blocks == 0);
     return 0;
@@ -362,7 +297,7 @@ TEST(new_array_allocation_failure_leaks_nothing) {
 
     /* The vec itself can be allocated, the item buffer cannot. */
     TRACKER(t, 1);
-    ivec v = vecnew_array(src, 3, &t.base);
+    ivec v = vecnew_array(src, 3, &t.alloc);
     pf_assert_null(v);
     pf_assert(t.blocks == 0);
     return 0;
@@ -388,7 +323,7 @@ TEST(new_arrayp_failure) {
     TRACKER(t, 1);
     int a = 1;
     int *ptrs[] = { &a };
-    pf_assert_null(vec_new_arrayp((void **)ptrs, 1, &t.base, sizeof(int)));
+    pf_assert_null(vec_new_arrayp((void **)ptrs, 1, &t.alloc, sizeof(int)));
     pf_assert(t.blocks == 0);
     pf_assert_null(vec_new_arrayp(NULL, 1, NULL, sizeof(int)));
     return 0;
@@ -400,7 +335,7 @@ TEST(init_array_copies_source) {
     vec_t raw;
     int src[] = { 9, 8, 7, 6 };
 
-    ivec v = vecinit_array(src, 4, &raw, &t.base);
+    ivec v = vecinit_array(src, 4, &raw, &t.alloc);
     pf_assert(vec_base(v) == &raw);
     EXPECT_INTS(v, 9, 8, 7, 6);
     vecfree(v);
@@ -413,7 +348,7 @@ TEST(init_array_allocation_failure) {
     TRACKER(t, 0);
     vec_t raw;
     int src[] = { 1, 2 };
-    pf_assert_null(vecinit_array(src, 2, &raw, &t.base));
+    pf_assert_null(vecinit_array(src, 2, &raw, &t.alloc));
     pf_assert(t.blocks == 0);
     return 0;
 }
@@ -425,9 +360,8 @@ TEST(init_arrayp_copies_pointees) {
     int a = 5, b = 6;
     int *ptrs[] = { &a, &b };
 
-    ivec v = (ivec)vec_init_arrayp(
-        (void **)ptrs, 2, &raw, &t.base, sizeof(int)
-    );
+    ivec v = (ivec)
+        vec_init_arrayp((void **)ptrs, 2, &raw, &t.alloc, sizeof(int));
     pf_assert(vec_base(v) == &raw);
     EXPECT_INTS(v, 5, 6);
     vecfree(v);
@@ -445,20 +379,20 @@ TEST(free_null_is_noop) {
 TEST(free_releases_everything) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     fill_seq(v, 500);
     pf_assert(t.blocks == 2);
     vecfree(v);
     pf_assert(t.blocks == 0);
     pf_assert(t.bytes == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
 TEST(unwrap_heap_vec_returns_buffer) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     fill_seq(v, 5);
     size_t bytes = veccap(v) * sizeof(int);
     void *items = vecitems(v);
@@ -469,9 +403,9 @@ TEST(unwrap_heap_vec_returns_buffer) {
     for (int i = 0; i < 5; i++)
         pf_assert(buf[i] == i);
 
-    deallocate(&t.base, buf, bytes);
+    deallocate(&t.alloc, buf, bytes);
     pf_assert(t.blocks == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
@@ -479,7 +413,7 @@ TEST(unwrap_initialized_vec_returns_buffer) {
     UNUSED;
     TRACKER(t, -1);
     vec_t raw;
-    ivec v = vecinit(int, &raw, &t.base);
+    ivec v = vecinit(int, &raw, &t.alloc);
     fill_seq(v, 3);
     size_t bytes = veccap(v) * sizeof(int);
 
@@ -487,7 +421,7 @@ TEST(unwrap_initialized_vec_returns_buffer) {
     pf_assert_not_null(buf);
     pf_assert(t.blocks == 1);
     pf_assert(buf[2] == 2);
-    deallocate(&t.base, buf, bytes);
+    deallocate(&t.alloc, buf, bytes);
     pf_assert(t.blocks == 0);
     return 0;
 }
@@ -495,7 +429,7 @@ TEST(unwrap_initialized_vec_returns_buffer) {
 TEST(unwrap_empty_and_null) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     pf_assert_null(vecunwrap(v));
     pf_assert(t.blocks == 0);
 
@@ -689,7 +623,7 @@ TEST(resize_shrink_above_length_keeps_length) {
 TEST(resize_to_zero_releases_buffer) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     fill_seq(v, 8);
     pf_assert(t.blocks == 2);
 
@@ -704,7 +638,7 @@ TEST(resize_to_zero_releases_buffer) {
     EXPECT_INTS(v, 42);
     vecfree(v);
     pf_assert(t.blocks == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
@@ -732,7 +666,7 @@ TEST(resize_overflow) {
 TEST(resize_out_of_memory_changes_nothing) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = INTS_ON(&t.base, 1, 2, 3, 4, 5);
+    ivec v = INTS_ON(&t.alloc, 1, 2, 3, 4, 5);
     size_t cap = veccap(v);
     t.budget = 0;
 
@@ -770,7 +704,7 @@ TEST(reserve_is_relative_to_length) {
 TEST(reserve_is_noop_when_space_exists) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     pf_assert_ok(vecreserve(v, 32));
     size_t cap = veccap(v);
     size_t allocs = t.allocs, reallocs = t.reallocs;
@@ -798,7 +732,7 @@ TEST(reserve_overflow) {
 TEST(reserve_out_of_memory_changes_nothing) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = INTS_ON(&t.base, 1, 2, 3);
+    ivec v = INTS_ON(&t.alloc, 1, 2, 3);
     size_t cap = veccap(v);
     t.budget = 0;
     pf_assert(vecreserve(v, cap + 100) == ITER_ENOMEM);
@@ -930,7 +864,7 @@ TEST(push_count_overflow) {
 TEST(push_grows_geometrically) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
 
     for (int i = 0; i < 4000; i++)
         pf_assert_ok(vecpush(v, &i, 1));
@@ -944,7 +878,7 @@ TEST(push_grows_geometrically) {
     pf_assert(t.allocs + t.reallocs < 100);
     vecfree(v);
     pf_assert(t.blocks == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
@@ -968,7 +902,7 @@ TEST(push_large_batch) {
 TEST(push_within_capacity_does_not_allocate) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     pf_assert_ok(vecresize(v, 8));
     void *items = vecitems(v);
     t.budget = 0;
@@ -986,7 +920,7 @@ TEST(push_within_capacity_does_not_allocate) {
 TEST(push_out_of_memory_changes_nothing) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     pf_assert_ok(vecresize(v, 3));
     PUSH(v, 1, 2, 3);
     t.budget = 0;
@@ -1464,7 +1398,7 @@ TEST(swap_overflow) {
 TEST(swap_on_a_full_vec_needs_scratch_space) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     pf_assert_ok(vecresize(v, 4));
     PUSH(v, 1, 2, 3, 4);
     pf_assert(veclen(v) == veccap(v));
@@ -1474,14 +1408,14 @@ TEST(swap_on_a_full_vec_needs_scratch_space) {
     pf_assert(veclen(v) == 4);
     vecfree(v);
     pf_assert(t.blocks == 0);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     return 0;
 }
 
 TEST(swap_out_of_memory_changes_nothing) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     pf_assert_ok(vecresize(v, 4));
     PUSH(v, 1, 2, 3, 4);
     t.budget = 0;
@@ -1812,7 +1746,7 @@ TEST(elements_of_large_size) {
 TEST(pointers_survive_pushes_within_capacity) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
     pf_assert_ok(vecreserve(v, 100));
     PUSH(v, 1);
     int *first = vecptr(v, 0);
@@ -1830,7 +1764,7 @@ TEST(pointers_survive_pushes_within_capacity) {
 TEST(allocator_sizes_are_reported_exactly) {
     UNUSED;
     TRACKER(t, -1);
-    ivec v = vecnew(int, &t.base);
+    ivec v = vecnew(int, &t.alloc);
 
     fill_seq(v, 100);
     pf_assert_ok(vecresize(v, 500));
@@ -1843,7 +1777,7 @@ TEST(allocator_sizes_are_reported_exactly) {
     PUSH(v, 1);
 
     vecfree(v);
-    pf_assert(t.badsize == 0);
+    pf_assert(t.badSizes == 0);
     pf_assert(t.blocks == 0);
     pf_assert(t.bytes == 0);
     return 0;
@@ -1853,7 +1787,7 @@ TEST(everything_is_released_after_failures) {
     UNUSED;
     for (long budget = 0; budget < 6; budget++) {
         TRACKER(t, budget);
-        ivec v = vecnew(int, &t.base);
+        ivec v = vecnew(int, &t.alloc);
         if (v) {
             for (int i = 0; i < 200; i++) {
                 if (vecpush(v, &i, 1))
@@ -1900,7 +1834,7 @@ TEST(random_operations_match_a_plain_array) {
     for (int round = 0; round < 8; round++) {
         uint32_t rs = rng_seed(seed, rep, round);
         TRACKER(t, -1);
-        ivec v = vecnew(int, &t.base);
+        ivec v = vecnew(int, &t.alloc);
         struct model m;
         int next = 1;
         m.n = 0;
@@ -2026,7 +1960,7 @@ TEST(random_operations_match_a_plain_array) {
 
         vecfree(v);
         pf_assert(t.blocks == 0);
-        pf_assert(t.badsize == 0);
+        pf_assert(t.badSizes == 0);
     }
     return 0;
 }
