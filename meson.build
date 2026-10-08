@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2025-2026 Предраг Јовановић
 # SPDX-License-Identifier: Apache-2.0
 
-project('libiter', 'c', version: '2.0')
+project('libiter', 'c', version: '2.0.1')
 
 src = [
     'src/global.c',
