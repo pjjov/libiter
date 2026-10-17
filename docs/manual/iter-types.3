@@ -1,0 +1,155 @@
+.\" libiter - Generic container and iterator library for C.
+.\"
+.\" Copyright 2025-2026 Предраг Јовановић
+.\" SPDX-FileCopyrightText: 2025-2026 Предраг Јовановић
+.\" SPDX-License-Identifier: Apache-2.0
+.TH "GENERIC CONTAINER MACROS AND TYPE DEFINITIONS." "3" "" "libiter 2.0.1" "libiter manual"
+.SH NAME
+Generic container macros and type definitions. \- API reference
+.SH SYNOPSIS
+.nf
+\fB#include <iter/types.h>\fR
+.fi
+.PP
+.nf
+\fB#define generic_container(T_CNTR, T_ITEM)\fR
+.fi
+.PP
+.nf
+\fB#define generic_item_type(T_CNTR, CNTR)\fR
+.fi
+.PP
+.nf
+\fB#define generic_item_ptr(T_CNTR, CNTR)\fR
+.fi
+.PP
+.nf
+\fB#define generic_item_dptr(T_CNTR, CNTR)\fR
+.fi
+.PP
+.nf
+\fB#define generic_item_size(T_CNTR, CNTR)\fR
+.fi
+.PP
+.nf
+\fB#define generic_check_item(T_CNTR, CNTR, ITEM)\fR
+.fi
+.PP
+.nf
+\fB#define generic_check_item_d(T_CNTR, CNTR, ITEM)\fR
+.fi
+.PP
+.nf
+\fB#define generic_check_container(T_CNTR, CNTR)\fR
+.fi
+.SH REFERENCE
+.SS generic_container
+.PP
+Declares a type generic container with given types
+.PP
+Parameters:
+.IP \(bu 2
+T_CNTR \- Type of the container.
+.IP \(bu 2
+T_ITEM \- Type of the item.
+.SS generic_item_type
+.PP
+Extracts the item type of the given container.
+.PP
+Parameters:
+.IP \(bu 2
+T_CNTR \- Explicit type of the container, or .
+.IP \(bu 2
+CNTR \- Pointer to the actual container.
+.SS generic_item_ptr
+.PP
+Extracts the item type with a pointer of the given container.
+.PP
+Parameters:
+.IP \(bu 2
+T_CNTR \- Explicit type of the container, or .
+.IP \(bu 2
+CNTR \- Pointer to the actual container.
+.SS generic_item_dptr
+.PP
+Extracts the item type with a double pointer of the given container.
+.PP
+Parameters:
+.IP \(bu 2
+T_CNTR \- Explicit type of the container, or .
+.IP \(bu 2
+CNTR \- Pointer to the actual container.
+.SS generic_item_size
+.PP
+Extracts the item type with a pointer of the given container.
+.PP
+Parameters:
+.IP \(bu 2
+T_CNTR \- Explicit type of the container, or .
+.IP \(bu 2
+CNTR \- Pointer to the actual container.
+.SS generic_check_item
+.PP
+Check if given item's type matches container's subtype.
+.PP
+Parameters:
+.IP \(bu 2
+T_CNTR \- Explicit type of the container, or .
+.IP \(bu 2
+CNTR \- Pointer to the actual container.
+.IP \(bu 2
+ITEM \- Pointer to the given item.
+.SS generic_check_item_d
+.PP
+Check if given double\-pointer item's type matches container's subtype.
+.PP
+Parameters:
+.IP \(bu 2
+T_CNTR \- Explicit type of the container, or .
+.IP \(bu 2
+CNTR \- Pointer to the actual container.
+.IP \(bu 2
+ITEM \- Pointer to the given item.
+.SS generic_check_container
+.PP
+Check if given container is of the given type (not subtype).
+.PP
+Parameters:
+.IP \(bu 2
+T_CNTR \- Explicit type of the container, or .
+.IP \(bu 2
+CNTR \- Pointer to the actual container.
+.SH ERROR HANDLING
+Errors are reported with the codes of
+.B enum libiter_error
+from
+.IR <iter/types.h> .
+.B ITER_OK
+(0) means success; every other code is a negative value, such as
+.B ITER_EINVAL
+or
+.BR ITER_ENOMEM .
+.PP
+Functions that document
+.B Returns
+report the error by returning its code.
+.PP
+Functions that document
+.B Exceptions
+(or
+.BR Throws )
+emit the error through the
+.I <pf_exception.h>
+interface.
+Wrap the call so the exception can be caught with
+.BR libiter_catch ()
+(see
+.BR global (3)),
+which returns
+.B NULL
+on the first call and the emitted exception afterwards.
+Functions that return a pointer return
+.B NULL
+when an exception was emitted, and functions that return an integer return the
+error code.
+The exception stack is thread local.

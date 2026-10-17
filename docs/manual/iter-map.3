@@ -1,0 +1,388 @@
+.\" libiter - Generic container and iterator library for C.
+.\"
+.\" Copyright 2025-2026 Предраг Јовановић
+.\" SPDX-FileCopyrightText: 2025-2026 Предраг Јовановић
+.\" SPDX-License-Identifier: Apache-2.0
+.TH "MAP(T) \- ASSOCIATIVE ARRAYS" "3" "" "libiter 2.0.1" "libiter manual"
+.SH NAME
+map(T) \- associative arrays \- API reference
+.SH SYNOPSIS
+.nf
+\fB#include <iter/map.h>\fR
+.fi
+.PP
+.nf
+\fB#define map_type(MAP)\fR
+.fi
+.PP
+.nf
+\fB#define map_type_ptr(MAP)\fR
+.fi
+.PP
+.nf
+\fB#define map_type_size(MAP)\fR
+.fi
+.PP
+.nf
+\fB#define map_base(MAP)\fR
+.fi
+.PP
+.nf
+\fB#define map_check(MAP, ITEM)\fR
+.fi
+.PP
+.nf
+\fB#define map_checkd(MAP, ITEM)\fR
+.fi
+.PP
+.nf
+\fBmap(T) mapnew(type T, allocator_t *allocator);\fR
+.fi
+.PP
+.nf
+\fBmap(T) mapinit(type T, map_t *out, allocator_t *allocator);\fR
+.fi
+.PP
+.nf
+\fBvoid mapfree(map(T) m);\fR
+.fi
+.PP
+.nf
+\fBint mapreserve(map(T) m, size_t count);\fR
+.fi
+.PP
+.nf
+\fBallocator_t *mapallocator(map(T) m);\fR
+.fi
+.PP
+.nf
+\fBint mapisempty(map(T) map);\fR
+.fi
+.PP
+.nf
+\fBsize_t mapcount(map(T) map);\fR
+.fi
+.PP
+.nf
+\fBsize_t mapcap(map(T) map);\fR
+.fi
+.PP
+.nf
+\fBint mapget(map(T) map, const T *key, T *out);\fR
+.fi
+.PP
+.nf
+\fBT *mapptr(map(T) map, const T *key);\fR
+.fi
+.PP
+.nf
+\fBint mapset(map(T) map, const T *item);\fR
+.fi
+.PP
+.nf
+\fBint mapinsert(map(T) map, const T *item);\fR
+.fi
+.PP
+.nf
+\fBint mapupdate(map(T) map, const T *item);\fR
+.fi
+.PP
+.nf
+\fBint mapremove(map(T) map, const T *key, T *out);\fR
+.fi
+.PP
+.nf
+\fBint mapeach(map(T) map, map_each_fn *fn, void *user);\fR
+.fi
+.PP
+.nf
+\fBITER_API int maphash(const void *buf, size_t size);\fR
+.fi
+.PP
+.nf
+\fBITER_API map_t *map_new(
+    map_hash_fn *hash, allocator_t *allocator, size_t size, size_t align
+);\fR
+.fi
+.PP
+.nf
+\fBITER_API map_t *map_init(
+    map_t *out,
+    map_hash_fn *hash,
+    allocator_t *allocator,
+    size_t size,
+    size_t align
+);\fR
+.fi
+.PP
+.nf
+\fBITER_API void map_free(map_t *m);\fR
+.fi
+.PP
+.nf
+\fBITER_API int map_reserve(map_t *m, size_t count);\fR
+.fi
+.PP
+.nf
+\fBITER_INLINE int map_isempty(map_t *m);\fR
+.fi
+.PP
+.nf
+\fBITER_INLINE size_t map_count(map_t *m);\fR
+.fi
+.PP
+.nf
+\fBITER_INLINE size_t map_cap(map_t *m);\fR
+.fi
+.PP
+.nf
+\fBITER_API allocator_t *map_allocator(map_t *m);\fR
+.fi
+.PP
+.nf
+\fBITER_API int map_get(map_t *m, const void *key, void *out);\fR
+.fi
+.PP
+.nf
+\fBITER_API void *map_ptr(map_t *m, const void *key);\fR
+.fi
+.PP
+.nf
+\fBITER_API int map_set(map_t *m, const void *item);\fR
+.fi
+.PP
+.nf
+\fBITER_API int map_insert(map_t *m, const void *item);\fR
+.fi
+.PP
+.nf
+\fBITER_API int map_update(map_t *m, const void *item);\fR
+.fi
+.PP
+.nf
+\fBITER_API int map_remove(map_t *m, const void *key, void *out);\fR
+.fi
+.PP
+.nf
+\fBITER_API int map_each(map_t *map, map_each_fn *fn, void *user);\fR
+.fi
+.SH HELPER MACROS
+.SS map_type
+.PP
+Extracts the item type for a given map.
+.SS map_type_ptr
+.PP
+Extracts the item type as a pointer for a given map.
+.SS map_type_size
+.PP
+Extracts the size of the item type for a given map.
+.SS map_base
+.PP
+Cast the map into \fBmap_t *\fR with some type safety.
+.SS map_check
+.PP
+Checks if given item has the map's subtype.
+.SS map_checkd
+.PP
+Checks if given item has the map's subtype as double pointer.
+.SH ALLOCATION FUNCTIONS
+.SS mapnew
+.PP
+Creates a new instance of \fBmap(T)\fR, allocated with 'allocator'.
+.PP
+\fBReturns\fR
+.PP
+\fBNULL\fR if out of memory.
+.SS mapinit
+.PP
+Initializes 'out' to a new instance of \fBmap(T)\fR, allocated with 'allocator'.
+.SS mapfree
+.PP
+Frees the item buffer of 'm' and frees 'm' if \fBmapinit\fR was not used.
+.SS mapreserve
+.PP
+Reserves space for at least 'count' items.
+.PP
+\fBThrows\fR
+.PP
+ITER_EINVAL, ITER_ENOMEM.
+.SH PROPERTIES
+.SS mapallocator
+.PP
+Returns the allocator used by 'm'.
+.SS mapisempty
+.PP
+Checks if 'map' is empty.
+.SS mapcount
+.PP
+Returns the number of items present in 'map'.
+.SS mapcap
+.PP
+Returns the number of slots reserved in 'map'.
+.SH MAIN OPERATIONS
+.SS mapget
+.PP
+Copies the item inside 'map' that is equal to the passed 'key',
+which is only used for hashing and comparison.
+.PP
+Parameters 'key' and 'out' can have identical values.
+.PP
+\fBReturns\fR
+.PP
+ITER_EINVAL, ITER_ENOENT.
+.PP
+\fBThrows\fR
+.PP
+ITER_EINVAL.
+.SS mapptr
+.PP
+Returns the pointer to the item inside 'map' that is equal to the passed
+\&'key', which is only used for hashing and comparison.
+.PP
+\fBReturns\fR
+.PP
+\fBNULL\fR if not found.
+.PP
+\fBThrows\fR
+.PP
+ITER_EINVAL.
+.SS mapset
+.PP
+Inserts or updates the requested item inside 'map' by copying 'item'.
+.PP
+\fBReturns\fR
+.PP
+ITER_EINVAL.
+.PP
+\fBThrows\fR
+.PP
+ITER_EINVAL.
+.SS mapinsert
+.PP
+Inserts the requested item inside 'map' by copying 'item'.
+.PP
+\fBReturns\fR
+.PP
+ITER_EINVAL, ITER_EEXIST.
+.PP
+\fBThrows\fR
+.PP
+ITER_EINVAL.
+.SS mapupdate
+.PP
+Updates the requested item inside 'map' by copying 'item'.
+.PP
+\fBReturns\fR
+.PP
+ITER_EINVAL, ITER_ENOENT.
+.PP
+\fBThrows\fR
+.PP
+ITER_EINVAL.
+.SS mapremove
+.PP
+Removes the requested item inside 'map'.
+If 'out' is not \fBNULL\fR, the removed item is copied to it.
+.PP
+\fBReturns\fR
+.PP
+ITER_EINVAL, ITER_ENOENT.
+.PP
+\fBThrows\fR
+.PP
+ITER_EINVAL.
+.SS mapeach
+.PP
+Calls 'fn' for each item in 'map'. If the callback returns a non\-zero value,
+the iteration is interrupted and the function exits immediately.
+.PP
+\fBReturns\fR
+.PP
+ITER_EINVAL, ITER_EINTR.
+.PP
+\fBThrows\fR
+.PP
+ITER_EINVAL.
+.SH TYPELESS FUNCTIONS
+.SS maphash
+.PP
+Default hashing function for byte arrays.
+.SS map_new
+.PP
+Creates a new instance of \fBmap_t\fR.
+.SS map_init
+.PP
+Initializes 'out' and returns it.
+.SS map_free
+.PP
+Frees the item buffer and 'map' object.
+.SS map_reserve
+.PP
+Reserves space for at least 'count' items.
+.SS map_isempty
+.PP
+Checks if count is 0.
+.SS map_count
+.PP
+Returns the number of items present.
+.SS map_cap
+.PP
+Returns the number of slots reserved.
+.SS map_allocator
+.PP
+Returns allocator used by 'm'.
+.SS map_get
+.PP
+Searches for item by it's key and copies it to 'out'.
+.SS map_ptr
+.PP
+Searches for item by it's key and returns it's pointer.
+.SS map_set
+.PP
+Inserts or updates item in 'map' by copying.
+.SS map_insert
+.PP
+Inserts item in 'map' by copying.
+.SS map_update
+.PP
+Updates item in 'map' by copying.
+.SS map_remove
+.PP
+Removes the item in 'map'.
+.SS map_each
+.PP
+Calls 'fn' for each item present in 'map'.
+.SH ERROR HANDLING
+Errors are reported with the codes of
+.B enum libiter_error
+from
+.IR <iter/types.h> .
+.B ITER_OK
+(0) means success; every other code is a negative value, such as
+.B ITER_EINVAL
+or
+.BR ITER_ENOMEM .
+.PP
+Functions that document
+.B Returns
+report the error by returning its code.
+.PP
+Functions that document
+.B Exceptions
+(or
+.BR Throws )
+emit the error through the
+.I <pf_exception.h>
+interface.
+Wrap the call so the exception can be caught with
+.BR libiter_catch ()
+(see
+.BR global (3)),
+which returns
+.B NULL
+on the first call and the emitted exception afterwards.
+Functions that return a pointer return
+.B NULL
+when an exception was emitted, and functions that return an integer return the
+error code.
+The exception stack is thread local.

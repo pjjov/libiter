@@ -15,6 +15,13 @@ install_headers(
     subdir: 'iter'
 )
 
+install_man(
+    'docs/iter-global.3',
+    'docs/iter-map.3',
+    'docs/iter-types.3',
+    'docs/iter-vec.3',
+)
+
 pkg = import('pkgconfig')
 pkg.generate(
     lib,

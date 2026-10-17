@@ -8,6 +8,8 @@
 #ifndef LIBITER_GLOBAL_H
 #define LIBITER_GLOBAL_H
 
+/** Module: Global state management and exception handling. */
+
 #ifndef ITER_API
     #define ITER_API
 #endif

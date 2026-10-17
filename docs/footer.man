@@ -1,0 +1,34 @@
+.SH ERROR HANDLING
+Errors are reported with the codes of
+.B enum libiter_error
+from
+.IR <iter/types.h> .
+.B ITER_OK
+(0) means success; every other code is a negative value, such as
+.B ITER_EINVAL
+or
+.BR ITER_ENOMEM .
+.PP
+Functions that document
+.B Returns
+report the error by returning its code.
+.PP
+Functions that document
+.B Exceptions
+(or
+.BR Throws )
+emit the error through the
+.I <pf_exception.h>
+interface.
+Wrap the call so the exception can be caught with
+.BR libiter_catch ()
+(see
+.BR global (3)),
+which returns
+.B NULL
+on the first call and the emitted exception afterwards.
+Functions that return a pointer return
+.B NULL
+when an exception was emitted, and functions that return an integer return the
+error code.
+The exception stack is thread local.

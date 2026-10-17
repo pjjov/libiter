@@ -8,6 +8,8 @@
 #ifndef LIBITER_MAP_H
 #define LIBITER_MAP_H
 
+/** Module: map(T) - associative arrays */
+
 #ifndef ITER_API
     #define ITER_API
 #endif

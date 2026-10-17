@@ -39,7 +39,7 @@ mapfree(mappings);
 
 - `vec(T)` - growable array like `std::vector` from C++.
 - `map(T)` - associative container that stores items by hashing.
-- `generic.h` - utilities for implementing generic types.
+- `iter/types.h` - utilities for implementing generic types.
 
 ## Documentation
 
@@ -49,6 +49,14 @@ in corresponding header files inside Javadoc-like comments (`/** ... */`).
 Because generic types are implemented through a layer of macros, the documentation
 has been written with *pseudo-C* style declarations that mimics the C++ template syntax.
 
+Reference documentation can be installed as manual pages and is also available
+as markdown here:
+
+- [vec(T)](./docs/reference/vec.md) - Growable arrays
+- [map(T)](./docs/reference/map.md) - Associative arrays
+- [iter/types.h](./docs/reference/types.md) - Generic container macros
+- [iter/global.h](./docs/reference/global.md) - Global state management
+
 ## Building
 
 Through the [cpolyfill](github.com/pjjov/cpolyfill) library,
@@ -56,12 +64,22 @@ Through the [cpolyfill](github.com/pjjov/cpolyfill) library,
 
 ### Meson
 
+#### Testing and compilation
+
 ```sh
 meson setup build
 cd build
 meson compile
 meson test # optional
 ```
+
+#### System installation
+
+```sh
+meson install
+```
+
+#### Usage in other Meson projects
 
 ```meson
 libiter_dep = dependency('iter', 'libiter', fallback : 'libiter')

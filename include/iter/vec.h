@@ -8,6 +8,8 @@
 #ifndef LIBITER_VEC_H
 #define LIBITER_VEC_H
 
+/** Module: vec(T) - growable arrays */
+
 #ifndef ITER_API
     #define ITER_API
 #endif
@@ -238,7 +240,7 @@ extern "C" {
 #define vecincr(v, count)                                               \
     ((vec_type_ptr(v))vec_incr(vec_base(v), (count), vec_type_size(v)))
 
-/** T *vecincr(vec(T) v, size_t count);
+/** T *vecdecr(vec(T) v, size_t count);
 
     Decreases the vector's length by count and returns the slot at the end of
     the buffer. This function is an inverted variant of 'pop', allowing the

@@ -7,6 +7,8 @@
 
 #ifndef LIBITER_TYPES_H
 
+/** Module: Generic container macros and type definitions. */
+
     #ifdef __cplusplus
 extern "C" {
     #endif

@@ -1,0 +1,2 @@
+Enable-macro-generics: true
+Enable-declaration-variants: true
