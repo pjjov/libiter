@@ -2,24 +2,24 @@
 # SPDX-FileCopyrightText: 2025-2026 Предраг Јовановић
 # SPDX-License-Identifier: Apache-2.0
 
-project('libiter', 'c', version: '2.0.1')
+project('libiter', 'c', version: '2.0.2')
 
 subdir('src')
 
 install_headers(
-    'iter/global.h',
-    'iter/map.h',
-    'iter/pf_types.h',
-    'iter/types.h',
-    'iter/vec.h',
+    'include/iter/global.h',
+    'include/iter/map.h',
+    'include/iter/pf_types.h',
+    'include/iter/types.h',
+    'include/iter/vec.h',
     subdir: 'iter'
 )
 
 install_man(
-    'docs/iter-global.3',
-    'docs/iter-map.3',
-    'docs/iter-types.3',
-    'docs/iter-vec.3',
+    'docs/manual/iter-global.3',
+    'docs/manual/iter-map.3',
+    'docs/manual/iter-types.3',
+    'docs/manual/iter-vec.3',
 )
 
 pkg = import('pkgconfig')
